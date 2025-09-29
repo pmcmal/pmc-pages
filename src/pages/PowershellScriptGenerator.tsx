@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const PowershellScriptGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
@@ -13,45 +14,41 @@ const PowershellScriptGenerator = () => {
   const [explanationText, setExplanationText] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  const handleGenerateScript = () => {
+  const handleGenerateScript = async () => {
     if (!prompt.trim()) {
       toast.error("Proszę opisać, jaki skrypt PowerShell potrzebujesz.");
       return;
     }
 
     setIsLoading(true);
-    setGeneratedScript(""); // Clear previous script
-    setExplanationText(""); // Clear previous explanation
+    setGeneratedScript("");
+    setExplanationText("");
 
-    // Simulate API call or script generation logic
-    setTimeout(() => {
-      const newExplanation = `
-Pamiętaj, że to jest tylko przykład.
-Zawsze dokładnie przeglądaj i testuj wygenerowane skrypty przed użyciem w środowisku produkcyjnym.
-`;
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-powershell-script', {
+        body: JSON.stringify({ prompt }),
+      });
 
-      const newScript = `
-# Skrypt PowerShell wygenerowany na podstawie Twojego zapytania: "${prompt}"
-
-# Przykładowa logika (dostosuj do swoich potrzeb):
-# if ($prompt -like "*lista procesów*") {
-#     Get-Process | Select-Object Name, Id, CPU, WorkingSet
-# } elseif ($prompt -like "*plik*") {
-#     New-Item -Path "C:\\temp\\my_generated_file.txt" -ItemType File -Value "To jest zawartość wygenerowanego pliku."
-# } else {
-#     Write-Host "Nie rozumiem Twojego zapytania. Proszę spróbować ponownie z bardziej szczegółowym opisem."
-# }
-
-Write-Host "Wygenerowano skrypt dla: '${prompt}'"
-# Tutaj znajdzie się rzeczywista logika skryptu PowerShell
-# ...
-# ...
-`;
-      setExplanationText(newExplanation.trim());
-      setGeneratedScript(newScript.trim());
+      if (error) {
+        console.error("Error invoking Edge Function:", error);
+        toast.error(`Błąd podczas generowania skryptu: ${error.message}`);
+        setExplanationText("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
+      } else if (data) {
+        // Assuming data is already parsed JSON from the Edge Function
+        setGeneratedScript(data.script || "");
+        setExplanationText(data.explanation || "");
+        toast.success("Skrypt PowerShell został wygenerowany!");
+      } else {
+        toast.error("Nie otrzymano odpowiedzi od generatora skryptów.");
+        setExplanationText("Nie otrzymano odpowiedzi od generatora skryptów.");
+      }
+    } catch (e: any) {
+      console.error("Unexpected error:", e);
+      toast.error(`Wystąpił nieoczekiwany błąd: ${e.message}`);
+      setExplanationText("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+    } finally {
       setIsLoading(false);
-      toast.success("Skrypt PowerShell został wygenerowany!");
-    }, 1500);
+    }
   };
 
   const handleCopyScript = () => {
