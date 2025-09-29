@@ -10,6 +10,7 @@ import { toast } from "sonner";
 const PowershellScriptGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [generatedScript, setGeneratedScript] = useState<string>("");
+  const [explanationText, setExplanationText] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const handleGenerateScript = () => {
@@ -20,14 +21,17 @@ const PowershellScriptGenerator = () => {
 
     setIsLoading(true);
     setGeneratedScript(""); // Clear previous script
+    setExplanationText(""); // Clear previous explanation
 
     // Simulate API call or script generation logic
     setTimeout(() => {
-      const mockScript = `
-# Skrypt PowerShell wygenerowany na podstawie Twojego zapytania: "${prompt}"
+      const newExplanation = `
+Pamiętaj, że to jest tylko przykład.
+Zawsze dokładnie przeglądaj i testuj wygenerowane skrypty przed użyciem w środowisku produkcyjnym.
+`;
 
-# Pamiętaj, że to jest tylko przykład.
-# Zawsze dokładnie przeglądaj i testuj wygenerowane skrypty przed użyciem w środowisku produkcyjnym.
+      const newScript = `
+# Skrypt PowerShell wygenerowany na podstawie Twojego zapytania: "${prompt}"
 
 # Przykładowa logika (dostosuj do swoich potrzeb):
 # if ($prompt -like "*lista procesów*") {
@@ -43,7 +47,8 @@ Write-Host "Wygenerowano skrypt dla: '${prompt}'"
 # ...
 # ...
 `;
-      setGeneratedScript(mockScript);
+      setExplanationText(newExplanation.trim());
+      setGeneratedScript(newScript.trim());
       setIsLoading(false);
       toast.success("Skrypt PowerShell został wygenerowany!");
     }, 1500);
@@ -83,6 +88,12 @@ Write-Host "Wygenerowano skrypt dla: '${prompt}'"
 
           {generatedScript && (
             <div className="grid w-full gap-2">
+              {explanationText && (
+                <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-700 rounded-md text-sm text-yellow-800 dark:text-yellow-200 whitespace-pre-wrap">
+                  <Label className="font-semibold mb-1 block">Ważne informacje:</Label>
+                  {explanationText}
+                </div>
+              )}
               <Label htmlFor="generated-script">Wygenerowany Skrypt PowerShell:</Label>
               <div className="relative">
                 <Textarea
