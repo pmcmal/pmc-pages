@@ -16,9 +16,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} />
+          {/* Ustaw PowershellScriptGenerator jako domyślną stronę */}
+          <Route path="/" element={<PowershellScriptGenerator />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="/powershell-generator" element={<PowershellScriptGenerator />} /> {/* New route */}
+          <Route path="/powershell-generator" element={<PowershellScriptGenerator />} /> {/* Now this route is redundant but kept for consistency if needed elsewhere */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

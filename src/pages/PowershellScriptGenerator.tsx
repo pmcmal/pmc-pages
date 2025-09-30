@@ -65,7 +65,7 @@ const PowershellScriptGenerator = () => {
       <Card className="w-full">
         <CardHeader>
           <CardTitle className="text-2xl font-bold">Generator Skryptów PowerShell</CardTitle>
-          <CardDescription>Opisz, jaki skrypt PowerShell potrzebujesz, a my postaramy się go wygenerować.</CardDescription>
+          <CardDescription>Prosty, bez żadnych reklam szybki dla Ciebie ode mnie.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid w-full gap-2">
@@ -113,6 +113,12 @@ const PowershellScriptGenerator = () => {
           )}
         </CardContent>
       </Card>
+      <div className="text-center mt-8 text-gray-600 dark:text-gray-400 text-sm">
+        Stworzył Paweł Malec i link jeśli chcesz mnie wesprzeć i przydało Ci się narzędzie:{" "}
+        <a href="https://tipped.pl/pmcmalec" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline">
+          https://tipped.pl/pmcmalec
+        </a>
+      </div>
     </div>
   );
 };
