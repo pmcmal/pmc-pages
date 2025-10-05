@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { PSSLogo } from "@/components/PSSLogo";
+import { PhilosopherLogo } from "@/components/PhilosopherLogo"; // Import nowego komponentu logo
 
 const PhilosopherCoach = () => {
   const [problem, setProblem] = useState<string>("");
@@ -55,7 +55,7 @@ const PhilosopherCoach = () => {
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
         <CardHeader>
-          <PSSLogo className="mb-4" />
+          <PhilosopherLogo className="mb-4" /> {/* Użycie nowego komponentu logo */}
           <CardTitle className="text-2xl font-bold">Twój Filozof i Coach Życiowy</CardTitle>
           <CardDescription>Opisz swój problem, a otrzymasz głęboką poradę życiową.</CardDescription>
         </CardHeader>
