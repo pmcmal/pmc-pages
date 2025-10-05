@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { PSSLogo } from "@/components/PSSLogo"; // Import nowego komponentu logo
+import { ScripterLogo } from "@/components/ScripterLogo"; // Import nowego komponentu logo
 
 const PowershellScriptGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
@@ -65,7 +65,7 @@ const PowershellScriptGenerator = () => {
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
         <CardHeader>
-          <PSSLogo className="mb-4" /> {/* Dodanie logo PSS tutaj */}
+          <ScripterLogo className="mb-4" /> {/* Dodanie logo Scripter tutaj */}
           <CardTitle className="text-2xl font-bold">Generator Skryptów PowerShell</CardTitle>
           <CardDescription>Prosty, bez żadnych reklam szybki dla Ciebie ode mnie.</CardDescription>
         </CardHeader>
