@@ -8,7 +8,7 @@ const Index = () => {
       <div className="text-center p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
         <h1 className="text-4xl font-bold mb-4">Witam Cię na mojej stronie</h1>
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
-          Wybierz jedną z moich stron aby przejść dalej
+          Wybierz jedną z moich podstron aby przejść dalej
         </p>
         <div className="flex flex-col space-y-4">
           <Link to="/powershell-generator">
