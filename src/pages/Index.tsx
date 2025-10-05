@@ -1,6 +1,6 @@
-import { MadeWithDyad } from "@/components/made-with-dyad";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { PSSLogo } from "@/components/PSSLogo"; // Import nowego komponentu logo
 
 const Index = () => {
   return (
@@ -16,7 +16,9 @@ const Index = () => {
           </Button>
         </Link>
       </div>
-      <MadeWithDyad />
+      <div className="mt-8">
+        <PSSLogo />
+      </div>
     </div>
   );
 };

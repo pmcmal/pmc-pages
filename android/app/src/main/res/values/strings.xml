@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">hopping-kiwi-swoop</string>
-    <string name="title_activity_main">hopping-kiwi-swoop</string>
+    <string name="app_name">PSS Generator</string>
+    <string name="title_activity_main">PSS Generator</string>
     <string name="package_name">com.example.hoppingkiwiswoop</string>
     <string name="custom_url_scheme">com.example.hoppingkiwiswoop</string>
 </resources>
