@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { PSSLogo } from "@/components/PSSLogo"; // Import nowego komponentu logo
+import { PSSLogo } from "@/components/PSSLogo";
 
 const Index = () => {
   return (
@@ -10,11 +10,18 @@ const Index = () => {
         <p className="text-xl text-gray-600 dark:text-gray-300 mb-6">
           Zacznij budować swój niesamowity projekt tutaj!
         </p>
-        <Link to="/powershell-generator">
-          <Button className="px-6 py-3 text-lg">
-            Przejdź do Generatora Skryptów PowerShell
-          </Button>
-        </Link>
+        <div className="flex flex-col space-y-4">
+          <Link to="/powershell-generator">
+            <Button className="px-6 py-3 text-lg w-full">
+              Przejdź do Generatora Skryptów PowerShell
+            </Button>
+          </Link>
+          <Link to="/philosopher-coach">
+            <Button className="px-6 py-3 text-lg w-full">
+              Uzyskaj Poradę od Filozofa/Coacha
+            </Button>
+          </Link>
+        </div>
       </div>
       <div className="mt-8">
         <PSSLogo />
