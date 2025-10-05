@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { PSSLogo } from "@/components/PSSLogo";
+import { PMCLogo } from "@/components/PMCLogo"; // Import nowego komponentu logo
 
 const Index = () => {
   return (
@@ -24,7 +24,7 @@ const Index = () => {
         </div>
       </div>
       <div className="mt-8">
-        <PSSLogo />
+        <PMCLogo /> {/* Użycie nowego komponentu logo */}
       </div>
     </div>
   );
