@@ -41,8 +41,22 @@ const RecipeGenerator = () => {
         toast.error(`Błąd podczas generowania przepisu: ${error.message}`);
         // Nie ustawiaj conversionTable na komunikat o błędzie
       } else if (data) {
-        setGeneratedRecipe(data.recipeText || "");
-        setConversionTable(data.conversionTable || "");
+        // Ensure recipeText is a string
+        let recipeText = data.recipeText;
+        if (typeof recipeText === 'object' && recipeText !== null) {
+          recipeText = JSON.stringify(recipeText, null, 2); // Convert object to formatted JSON string
+          toast.warning("AI zwróciło przepis jako obiekt. Został on przekonwertowany na tekst.");
+        }
+
+        // Ensure conversionTable is a string
+        let conversionTable = data.conversionTable;
+        if (typeof conversionTable === 'object' && conversionTable !== null) {
+          conversionTable = JSON.stringify(conversionTable, null, 2); // Convert object to formatted JSON string
+          toast.warning("AI zwróciło tabelę przeliczników jako obiekt. Została ona przekonwertowana na tekst.");
+        }
+
+        setGeneratedRecipe(recipeText || "");
+        setConversionTable(conversionTable || "");
         toast.success("Przepis został wygenerowany!");
       } else {
         toast.error("Nie otrzymano odpowiedzi od generatora przepisów.");
