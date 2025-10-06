@@ -1,0 +1,66 @@
+/* src/styles/background.css */
+
+@keyframes subtle-move {
+  0% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(5%, 5%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
+@keyframes subtle-fade {
+  0% {
+    opacity: 0.05;
+  }
+  50% {
+    opacity: 0.1;
+  }
+  100% {
+    opacity: 0.05;
+  }
+}
+
+body {
+  position: relative;
+  overflow: hidden; /* Zapobiega pojawianiu się pasków przewijania przez wzory */
+}
+
+body::before,
+body::after {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: -10%;
+  width: 120%;
+  height: 120%;
+  background-size: 10% 10%; /* Mały, powtarzający się wzór */
+  pointer-events: none;
+  z-index: -1; /* Upewnia się, że wzory są za treścią */
+}
+
+body::before {
+  background-image: radial-gradient(circle, var(--foreground) 1px, transparent 1px);
+  opacity: 0.05;
+  animation: subtle-move 60s ease-in-out infinite alternate, subtle-fade 30s ease-in-out infinite;
+}
+
+body::after {
+  background-image: linear-gradient(45deg, var(--primary) 1px, transparent 1px);
+  opacity: 0.03;
+  animation: subtle-move 80s ease-out infinite reverse, subtle-fade 40s ease-in-out infinite alternate;
+}
+
+/* Dostosowania dla trybu ciemnego */
+.dark body::before {
+  background-image: radial-gradient(circle, var(--background) 1px, transparent 1px);
+  opacity: 0.08;
+}
+
+.dark body::after {
+  background-image: linear-gradient(45deg, var(--secondary) 1px, transparent 1px);
+  opacity: 0.05;
+}
