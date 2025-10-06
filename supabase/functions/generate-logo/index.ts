@@ -25,25 +25,18 @@ serve(async (req) => {
       throw new Error("OPENROUTER_API_KEY is not set in environment variables.");
     }
 
-    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/images/generations", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo", // You can choose a different model available on OpenRouter
-        messages: [
-          {
-            role: "system",
-            content: `Jesteś ekspertem od projektowania logo. Twoim zadaniem jest generowanie tekstowych koncepcji logo (np. ASCII art, opis stylu, czcionki, układu) na podstawie opisu użytkownika. Zawsze zwracaj odpowiedź w formacie JSON z dwoma polami: \`logoText\` (zawierającym tekstową reprezentację lub szczegółowy opis koncepcji logo) i \`disclaimer\` (zawierającym krótkie ostrzeżenie, że to jest tekstowa koncepcja AI i nie jest gotowym plikiem graficznym). Jeśli zapytanie jest niejasne lub potencjalnie nieodpowiednie, poproś o więcej szczegółów lub odmów generowania, wyjaśniając dlaczego.`,
-          },
-          {
-            role: "user",
-            content: `Wygeneruj koncepcję logo dla: ${prompt}`,
-          },
-        ],
-        max_tokens: 2048,
+        model: "stability-ai/stable-diffusion-xl", // Model generujący obrazy
+        prompt: `Stwórz minimalistyczne logo na podstawie opisu: "${prompt}". Skup się na prostocie, czytelności i unikalności. Zwróć obraz w formacie PNG.`,
+        n: 1, // Liczba generowanych obrazów
+        size: "512x512", // Rozmiar obrazu
+        response_format: "url", // Oczekujemy URL obrazu
       }),
     });
 
@@ -54,25 +47,21 @@ serve(async (req) => {
     }
 
     const data = await openrouterResponse.json();
-    const aiResponseContent = data.choices[0].message.content;
+    const imageUrl = data.data?.[0]?.url;
 
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(aiResponseContent);
-    } catch (e) {
-      console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-      parsedResponse = {
-        logoText: aiResponseContent,
-        disclaimer: "Nie udało się poprawnie przetworzyć odpowiedzi AI. Proszę dokładnie sprawdzić wygenerowaną koncepcję logo.",
-      };
+    if (!imageUrl) {
+      throw new Error("Nie udało się uzyskać URL obrazu z odpowiedzi AI.");
     }
 
-    return new Response(JSON.stringify(parsedResponse), {
+    return new Response(JSON.stringify({
+      imageUrl: imageUrl,
+      disclaimer: "To jest wygenerowany obraz AI. Może wymagać dalszej edycji lub dostosowania do Twoich potrzeb. Pamiętaj, że jakość i styl mogą się różnić."
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
-    console.error("Error generating logo:", error);
+    console.error("Error generating logo image:", error);
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
