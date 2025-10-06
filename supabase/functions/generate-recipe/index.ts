@@ -15,7 +15,7 @@ serve(async (req) => {
 
     // Handle "Surprise me" logic: if prompt is generic, use a more open-ended prompt
     if (prompt === "losowe składniki") {
-      prompt = "dowolne składniki"; // Use a more open-ended prompt for AI
+      prompt = "zaskocz mnie ciekawym przepisem na danie z losowych składników"; // Make the prompt more explicit for AI
     } else if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -39,7 +39,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania, wykorzystując podane przez użytkownika składniki. Zawsze zwracaj przepis w formacie JSON z polami: \`recipeText\` (zawierającym pełny przepis z listą składników i instrukcjami) oraz \`conversionTable\` (zawierającym prostą tabelę przeliczników wagi na popularne miary, np. łyżeczki, szklanki, dla kilku podstawowych składników jak mąka, cukier, woda, olej. Podaj wartości w gramach i odpowiadające im miary domowe. Upewnij się, że przepis jest łatwy do wykonania. Jeśli zapytanie jest niejasne lub brakuje kluczowych składników, poproś o więcej szczegółów lub zasugeruj, co można dodać.`,
+            content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania. Jeśli użytkownik poda konkretne składniki, wykorzystaj je. Jeśli użytkownik poprosi o "zaskoczenie" lub poda ogólne zapytanie, wygeneruj ciekawy przepis z losowych składników. Zawsze zwracaj przepis w formacie JSON z polami: \`recipeText\` (zawierającym pełny przepis z listą składników i instrukcjami) oraz \`conversionTable\` (zawierającym prostą tabelę przeliczników wagi na popularne miary, np. łyżeczki, szklanki, dla kilku podstawowych składników jak mąka, cukier, woda, olej. Podaj wartości w gramach i odpowiadające im miary domowe. Upewnij się, że przepis jest łatwy do wykonania.`,
           },
           {
             role: "user",
