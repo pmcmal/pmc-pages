@@ -14,10 +14,11 @@ const RecipeGenerator = () => {
   const [generatedRecipe, setGeneratedRecipe] = useState<string>("");
   const [conversionTable, setConversionTable] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSurpriseMeActive, setIsSurpriseMeActive] = useState<boolean>(false);
 
   const handleGenerateRecipe = async () => {
-    if (!prompt.trim()) {
-      toast.error("Proszę wymienić dostępne składniki.");
+    if (!isSurpriseMeActive && !prompt.trim()) {
+      toast.error("Proszę wymienić dostępne składniki lub wybrać opcję 'Zaskocz mnie'.");
       return;
     }
 
@@ -25,9 +26,14 @@ const RecipeGenerator = () => {
     setGeneratedRecipe("");
     setConversionTable(""); // Resetuj conversionTable na początku
 
+    let currentPrompt = prompt.trim();
+    if (isSurpriseMeActive) {
+      currentPrompt = "losowe składniki"; // Send a generic prompt for surprise me
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-recipe', {
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: currentPrompt }),
       });
 
       if (error) {
@@ -51,6 +57,13 @@ const RecipeGenerator = () => {
     }
   };
 
+  const handleSurpriseMeToggle = () => {
+    setIsSurpriseMeActive(!isSurpriseMeActive);
+    if (!isSurpriseMeActive) { // If activating surprise me, clear fields
+      setPrompt("");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
@@ -62,6 +75,19 @@ const RecipeGenerator = () => {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Button
+              onClick={handleSurpriseMeToggle}
+              variant={isSurpriseMeActive ? "default" : "outline"}
+              disabled={isLoading}
+            >
+              {isSurpriseMeActive ? "Wyłącz 'Zaskocz mnie'" : "Zaskocz mnie!"}
+            </Button>
+            <Label htmlFor="surprise-me-toggle" className="text-sm text-muted-foreground">
+              {isSurpriseMeActive ? "AI wygeneruje przepis z losowych składników." : "Wypełnij pola lub kliknij 'Zaskocz mnie'."}
+            </Label>
+          </div>
+
           <div className="grid w-full gap-2">
             <Label htmlFor="prompt">Dostępne składniki:</Label>
             <Textarea
@@ -70,7 +96,7 @@ const RecipeGenerator = () => {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={5}
-              disabled={isLoading}
+              disabled={isLoading || isSurpriseMeActive}
             />
             <Button onClick={handleGenerateRecipe} disabled={isLoading}>
               {isLoading ? "Generowanie przepisu..." : "Generuj Przepis"}
