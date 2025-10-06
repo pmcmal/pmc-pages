@@ -36,7 +36,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś utalentowanym pisarzem. Twoim zadaniem jest generowanie spójnych i wciągających opowiadań na podstawie podanych przez użytkownika informacji. Opowiadanie powinno mieć od 1000 do 20000 słów, ale pamiętaj, że w jednej odpowiedzi API mogę dostarczyć około 1000-3000 słów. Jeśli opowiadanie będzie dłuższe, użytkownik może poprosić o kontynuację. Zawsze zwracaj odpowiedź w formacie JSON z dwoma polami: 'story' (zawierającym wygenerowane opowiadanie) i 'disclaimer' (zawierającym krótkie ostrzeżenie, że to jest opowiadanie AI i może być skrócone lub wymagać kontynuacji).`,
+            content: `Jesteś utalentowanym pisarzem. Twoim zadaniem jest generowanie spójnych, wciągających i **szczegółowych opowiadań, podzielonych na logiczne akapity**, na podstawie podanych przez użytkownika informacji. Opowiadanie powinno być tak długie, jak to możliwe w ramach jednej odpowiedzi API (około 1000-3000 słów). Zawsze zwracaj odpowiedź w formacie JSON z dwoma polami: 'story' (zawierającym wygenerowane opowiadanie) i 'disclaimer' (zawierającym krótkie ostrzeżenie, że to jest opowiadanie AI i jego długość jest ograniczona do jednej odpowiedzi API).`,
           },
           {
             role: "user",
@@ -63,7 +63,7 @@ serve(async (req) => {
       console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
       parsedResponse = {
         story: aiResponseContent,
-        disclaimer: "Przepraszam, nie udało mi się sformułować opowiadania w oczekiwanym formacie. Proszę dokładnie sprawdzić wygenerowany tekst. Opowiadanie może być skrócone.",
+        disclaimer: "Przepraszam, nie udało mi się sformułować opowiadania w oczekiwanym formacie. Proszę dokładnie sprawdzić wygenerowany tekst. Opowiadanie może być skrócone, ponieważ jego długość jest ograniczona do jednej odpowiedzi API.",
       };
     }
 
