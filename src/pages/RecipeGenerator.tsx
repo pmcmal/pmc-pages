@@ -23,7 +23,7 @@ const RecipeGenerator = () => {
 
     setIsLoading(true);
     setGeneratedRecipe("");
-    setConversionTable("");
+    setConversionTable(""); // Resetuj conversionTable na początku
 
     try {
       const { data, error } = await supabase.functions.invoke('generate-recipe', {
@@ -33,19 +33,19 @@ const RecipeGenerator = () => {
       if (error) {
         console.error("Error invoking Edge Function:", error);
         toast.error(`Błąd podczas generowania przepisu: ${error.message}`);
-        setConversionTable("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
+        // Nie ustawiaj conversionTable na komunikat o błędzie
       } else if (data) {
         setGeneratedRecipe(data.recipeText || "");
         setConversionTable(data.conversionTable || "");
         toast.success("Przepis został wygenerowany!");
       } else {
         toast.error("Nie otrzymano odpowiedzi od generatora przepisów.");
-        setConversionTable("Nie otrzymano odpowiedzi od generatora przepisów.");
+        // Nie ustawiaj conversionTable na komunikat o błędzie
       }
     } catch (e: any) {
       console.error("Unexpected error:", e);
       toast.error(`Wystąpił nieoczekiwany błąd: ${e.message}`);
-      setConversionTable("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+      // Nie ustawiaj conversionTable na komunikat o błędzie
     } finally {
       setIsLoading(false);
     }
