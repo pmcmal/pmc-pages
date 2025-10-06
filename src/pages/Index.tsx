@@ -38,8 +38,11 @@ const Index = () => {
           </Link>
         </div>
       </div>
-      <div className="mt-8">
+      <div className="mt-8 flex flex-col items-center">
         <PMCLogo />
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">
+          Powered by Paweł Malec ®
+        </p>
       </div>
     </div>
   );
