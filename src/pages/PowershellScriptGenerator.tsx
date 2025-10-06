@@ -65,6 +65,15 @@ const PowershellScriptGenerator = () => {
     }
   };
 
+  const handleCopyScript = () => {
+    if (generatedScript) {
+      navigator.clipboard.writeText(generatedScript);
+      toast.info("Skrypt został skopiowany do schowka!");
+    } else {
+      toast.error("Brak skryptu do skopiowania.");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
