@@ -11,9 +11,12 @@ serve(async (req) => {
   }
 
   try {
-    const { problem } = await req.json();
+    let { problem } = await req.json();
 
-    if (!problem) {
+    // Handle "Surprise me" logic: if problem is generic, use a more open-ended prompt
+    if (problem === "losowy problem życiowy") {
+      problem = "dowolny problem życiowy"; // Use a more open-ended prompt for AI
+    } else if (!problem) {
       return new Response(JSON.stringify({ error: "Problem description is required" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

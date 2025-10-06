@@ -14,10 +14,11 @@ const PhilosopherCoach = () => {
   const [advice, setAdvice] = useState<string>("");
   const [disclaimer, setDisclaimer] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSurpriseMeActive, setIsSurpriseMeActive] = useState<boolean>(false);
 
   const handleGetAdvice = async () => {
-    if (!problem.trim()) {
-      toast.error("Proszę opisać swój problem, aby otrzymać poradę.");
+    if (!isSurpriseMeActive && !problem.trim()) {
+      toast.error("Proszę opisać swój problem, aby otrzymać poradę, lub wybrać opcję 'Zaskocz mnie'.");
       return;
     }
 
@@ -25,9 +26,14 @@ const PhilosopherCoach = () => {
     setAdvice("");
     setDisclaimer("");
 
+    let currentProblem = problem.trim();
+    if (isSurpriseMeActive) {
+      currentProblem = "losowy problem życiowy"; // Send a generic prompt for surprise me
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('philosopher-coach', {
-        body: JSON.stringify({ problem }),
+        body: JSON.stringify({ problem: currentProblem }),
       });
 
       if (error) {
@@ -51,6 +57,13 @@ const PhilosopherCoach = () => {
     }
   };
 
+  const handleSurpriseMeToggle = () => {
+    setIsSurpriseMeActive(!isSurpriseMeActive);
+    if (!isSurpriseMeActive) { // If activating surprise me, clear fields
+      setProblem("");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
@@ -60,6 +73,19 @@ const PhilosopherCoach = () => {
           <CardDescription>Opisz swój problem, a otrzymasz głęboką poradę życiową.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Button
+              onClick={handleSurpriseMeToggle}
+              variant={isSurpriseMeActive ? "default" : "outline"}
+              disabled={isLoading}
+            >
+              {isSurpriseMeActive ? "Wyłącz 'Zaskocz mnie'" : "Zaskocz mnie!"}
+            </Button>
+            <Label htmlFor="surprise-me-toggle" className="text-sm text-muted-foreground">
+              {isSurpriseMeActive ? "AI wygeneruje poradę na losowy temat." : "Wypełnij pole lub kliknij 'Zaskocz mnie'."}
+            </Label>
+          </div>
+
           <div className="grid w-full gap-2">
             <Label htmlFor="problem">Opisz swój problem:</Label>
             <Textarea
@@ -68,7 +94,7 @@ const PhilosopherCoach = () => {
               value={problem}
               onChange={(e) => setProblem(e.target.value)}
               rows={5}
-              disabled={isLoading}
+              disabled={isLoading || isSurpriseMeActive}
             />
             <Button onClick={handleGetAdvice} disabled={isLoading}>
               {isLoading ? "Generowanie porady..." : "Uzyskaj Poradę"}
