@@ -11,13 +11,20 @@ serve(async (req) => {
   }
 
   try {
-    const { genre, character, event } = await req.json();
+    let { genre, character, event } = await req.json();
 
-    if (!genre || !character || !event) {
-      return new Response(JSON.stringify({ error: "Genre, character, and event are required" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
+    // Handle "Surprise me" logic: if fields are generic, use a more open-ended prompt
+    if (genre === "losowy gatunek" && character === "losowa postać" && event === "losowe zdarzenie") {
+      genre = "dowolny gatunek";
+      character = "dowolna postać";
+      event = "dowolne zdarzenie";
+    } else {
+      if (!genre || !character || !event) {
+        return new Response(JSON.stringify({ error: "Genre, character, and event are required" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
     }
 
     const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY");

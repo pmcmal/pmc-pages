@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { StorytellerLogo } from "@/components/StorytellerLogo"; // Import nowego komponentu logo
+import { StorytellerLogo } from "@/components/StorytellerLogo";
 
 const StoryGenerator = () => {
   const [genre, setGenre] = useState<string>("");
@@ -16,10 +16,11 @@ const StoryGenerator = () => {
   const [generatedStory, setGeneratedStory] = useState<string>("");
   const [disclaimer, setDisclaimer] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSurpriseMeActive, setIsSurpriseMeActive] = useState<boolean>(false);
 
   const handleGenerateStory = async () => {
-    if (!genre.trim() || !character.trim() || !event.trim()) {
-      toast.error("Proszę wypełnić wszystkie pola, aby wygenerować opowiadanie.");
+    if (!isSurpriseMeActive && (!genre.trim() || !character.trim() || !event.trim())) {
+      toast.error("Proszę wypełnić wszystkie pola lub wybrać opcję 'Zaskocz mnie'.");
       return;
     }
 
@@ -27,9 +28,19 @@ const StoryGenerator = () => {
     setGeneratedStory("");
     setDisclaimer("");
 
+    let currentGenre = genre.trim();
+    let currentCharacter = character.trim();
+    let currentEvent = event.trim();
+
+    if (isSurpriseMeActive) {
+      currentGenre = "losowy gatunek";
+      currentCharacter = "losowa postać";
+      currentEvent = "losowe zdarzenie";
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-story', {
-        body: JSON.stringify({ genre, character, event }),
+        body: JSON.stringify({ genre: currentGenre, character: currentCharacter, event: currentEvent }),
       });
 
       if (error) {
@@ -53,6 +64,15 @@ const StoryGenerator = () => {
     }
   };
 
+  const handleSurpriseMeToggle = () => {
+    setIsSurpriseMeActive(!isSurpriseMeActive);
+    if (!isSurpriseMeActive) { // If activating surprise me, clear fields
+      setGenre("");
+      setCharacter("");
+      setEvent("");
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
@@ -60,10 +80,23 @@ const StoryGenerator = () => {
           <StorytellerLogo className="mb-4" />
           <CardTitle className="text-2xl font-bold">Generator Opowiadań AI</CardTitle>
           <CardDescription>
-            Wprowadź gatunek, postać i zdarzenie, aby stworzyć unikalną historię.
+            Wprowadź gatunek, postać i zdarzenie, aby stworzyć unikalną historię, lub pozwól AI Cię zaskoczyć!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Button
+              onClick={handleSurpriseMeToggle}
+              variant={isSurpriseMeActive ? "default" : "outline"}
+              disabled={isLoading}
+            >
+              {isSurpriseMeActive ? "Wyłącz 'Zaskocz mnie'" : "Zaskocz mnie!"}
+            </Button>
+            <Label htmlFor="surprise-me-toggle" className="text-sm text-muted-foreground">
+              {isSurpriseMeActive ? "AI wygeneruje losowe parametry." : "Wypełnij pola lub kliknij 'Zaskocz mnie'."}
+            </Label>
+          </div>
+
           <div className="grid w-full gap-2">
             <Label htmlFor="genre">Gatunek:</Label>
             <Textarea
@@ -72,7 +105,7 @@ const StoryGenerator = () => {
               value={genre}
               onChange={(e) => setGenre(e.target.value)}
               rows={1}
-              disabled={isLoading}
+              disabled={isLoading || isSurpriseMeActive}
             />
           </div>
           <div className="grid w-full gap-2">
@@ -83,7 +116,7 @@ const StoryGenerator = () => {
               value={character}
               onChange={(e) => setCharacter(e.target.value)}
               rows={1}
-              disabled={isLoading}
+              disabled={isLoading || isSurpriseMeActive}
             />
           </div>
           <div className="grid w-full gap-2">
@@ -94,7 +127,7 @@ const StoryGenerator = () => {
               value={event}
               onChange={(e) => setEvent(e.target.value)}
               rows={2}
-              disabled={isLoading}
+              disabled={isLoading || isSurpriseMeActive}
             />
           </div>
           <Button onClick={handleGenerateStory} disabled={isLoading} className="w-full">
