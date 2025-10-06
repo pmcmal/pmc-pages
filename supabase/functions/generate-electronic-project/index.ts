@@ -38,14 +38,24 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś ekspertem od elektroniki i generujesz pomysły na projekty elektroniczne. Twoim zadaniem jest tworzenie kreatywnych, ale realistycznych i możliwych do wykonania pomysłów na projekty z wykorzystaniem Raspberry Pi, Arduino lub prostych układów do lutowania. Pomysł powinien zawierać krótki opis, listę głównych komponentów oraz ogólny zarys działania. Zawsze zwracaj odpowiedź w formacie JSON z dwoma polami: 'projectIdea' (zawierającym wygenerowany pomysł na projekt) i 'disclaimer' (zawierającym krótkie ostrzeżenie, że to jest pomysł AI i wymaga dalszego planowania oraz weryfikacji).`,
+            content: `Jesteś ekspertem od elektroniki i generujesz pomysły na projekty elektroniczne. Twoim zadaniem jest tworzenie kreatywnych, ale realistycznych i możliwych do wykonania pomysłów na projekty z wykorzystaniem Raspberry Pi, Arduino lub prostych układów do lutowania. Pomysł powinien zawierać:
+            1. Krótki opis projektu.
+            2. Listę głównych komponentów potrzebnych do jego zbudowania (np. Arduino Uno, czujnik temperatury DHT11, dioda LED, rezystor 220 Ohm).
+            3. Ogólny zarys działania.
+            4. Jeśli projekt wymaga programowania (np. Arduino, Raspberry Pi), dołącz przykładowy, krótki kod (np. szkic Arduino, prosty skrypt Python), umieszczony w bloku kodu. Jeśli kod nie jest potrzebny, pole 'exampleCode' powinno być puste.
+            
+            Zawsze zwracaj odpowiedź w formacie JSON z następującymi polami:
+            - 'projectIdea' (string): Krótki opis projektu i zarys działania.
+            - 'componentsNeeded' (array of strings): Lista potrzebnych komponentów.
+            - 'exampleCode' (string): Przykładowy kod, jeśli dotyczy. Jeśli nie, pusty string.
+            - 'disclaimer' (string): Krótkie ostrzeżenie, że to jest pomysł AI i wymaga dalszego planowania oraz weryfikacji.`,
           },
           {
             role: "user",
             content: `Wygeneruj pomysł na projekt elektroniczny dla: ${prompt}`,
           },
         ],
-        max_tokens: 1024,
+        max_tokens: 1500, // Zwiększono limit tokenów, aby pomieścić kod i komponenty
       }),
     });
 
@@ -65,6 +75,8 @@ serve(async (req) => {
       console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
       parsedResponse = {
         projectIdea: aiResponseContent,
+        componentsNeeded: [],
+        exampleCode: "",
         disclaimer: "Przepraszam, nie udało mi się sformułować pomysłu na projekt w oczekiwanym formacie. Proszę dokładnie sprawdzić wygenerowany tekst. Pamiętaj, że to jest tylko pomysł i wymaga dalszego planowania.",
       };
     }

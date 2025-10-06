@@ -12,6 +12,8 @@ import { CircuitLogo } from "@/components/CircuitLogo"; // Import nowego kompone
 const ElectronicProjectGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [generatedProject, setGeneratedProject] = useState<string>("");
+  const [componentsNeeded, setComponentsNeeded] = useState<string[]>([]);
+  const [exampleCode, setExampleCode] = useState<string>("");
   const [disclaimer, setDisclaimer] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSurpriseMeActive, setIsSurpriseMeActive] = useState<boolean>(false);
@@ -24,6 +26,8 @@ const ElectronicProjectGenerator = () => {
 
     setIsLoading(true);
     setGeneratedProject("");
+    setComponentsNeeded([]);
+    setExampleCode("");
     setDisclaimer("");
 
     let currentPrompt = prompt.trim();
@@ -42,6 +46,8 @@ const ElectronicProjectGenerator = () => {
         setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
       } else if (data) {
         setGeneratedProject(data.projectIdea || "");
+        setComponentsNeeded(data.componentsNeeded || []);
+        setExampleCode(data.exampleCode || "");
         setDisclaimer(data.disclaimer || "");
         toast.success("Pomysł na projekt został wygenerowany!");
       } else {
@@ -111,10 +117,31 @@ const ElectronicProjectGenerator = () => {
                   id="generated-project"
                   value={generatedProject}
                   readOnly
-                  rows={15}
+                  rows={10}
                   className="font-mono bg-gray-50 dark:bg-gray-900"
                 />
               </div>
+
+              {componentsNeeded.length > 0 && (
+                <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-700 rounded-md text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">
+                  <Label className="font-semibold mb-1 block">Potrzebne komponenty:</Label>
+                  <ul className="list-disc pl-5">
+                    {componentsNeeded.map((component, index) => (
+                      <li key={index}>{component}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {exampleCode && (
+                <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm text-gray-800 dark:text-gray-200">
+                  <Label className="font-semibold mb-1 block">Przykładowy kod:</Label>
+                  <pre className="whitespace-pre-wrap break-words font-mono text-xs">
+                    <code>{exampleCode}</code>
+                  </pre>
+                </div>
+              )}
+
               {disclaimer && (
                 <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-700 rounded-md text-sm text-blue-800 dark:text-blue-200 whitespace-pre-wrap">
                   <Label className="font-semibold mb-1 block">Ważne:</Label>
