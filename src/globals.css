@@ -96,10 +96,10 @@
   }
 
   html {
-    @apply bg-background;
+    /* Usunięto @apply bg-background; */
   }
 
   body {
-    @apply text-foreground;
+    @apply bg-background text-foreground; /* Przywrócono tło na body */
   }
 }

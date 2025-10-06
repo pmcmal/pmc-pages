@@ -7,7 +7,7 @@ export default {
     "./components/**/*.{ts,tsx}",
     "./app/**/*.{ts,tsx}",
     "./src/**/*.{ts,tsx}",
-    "./src/styles/background.css", // Dodano nowy plik CSS
+    // Usunięto "./src/styles/background.css",
   ],
   prefix: "",
   theme: {
