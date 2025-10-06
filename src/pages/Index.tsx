@@ -21,6 +21,11 @@ const Index = () => {
               Uzyskaj Poradę od Filozofa/Coacha
             </Button>
           </Link>
+          <Link to="/recipe-generator">
+            <Button className="px-6 py-3 text-lg w-full">
+              Wygeneruj Przepis Kulinarny
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="mt-8">

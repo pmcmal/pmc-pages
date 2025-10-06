@@ -6,7 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import PowershellScriptGenerator from "./pages/PowershellScriptGenerator";
-import PhilosopherCoach from "./pages/PhilosopherCoach"; // Import the new component
+import PhilosopherCoach from "./pages/PhilosopherCoach";
+import RecipeGenerator from "./pages/RecipeGenerator"; // Import the new component
 
 const queryClient = new QueryClient();
 
@@ -17,9 +18,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Index />} /> {/* Set Index as the default page */}
+          <Route path="/" element={<Index />} />
           <Route path="/powershell-generator" element={<PowershellScriptGenerator />} />
-          <Route path="/philosopher-coach" element={<PhilosopherCoach />} /> {/* New route */}
+          <Route path="/philosopher-coach" element={<PhilosopherCoach />} />
+          <Route path="/recipe-generator" element={<RecipeGenerator />} /> {/* New route */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
