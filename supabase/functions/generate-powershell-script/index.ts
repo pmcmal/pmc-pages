@@ -11,9 +11,12 @@ serve(async (req) => {
   }
 
   try {
-    const { prompt } = await req.json();
+    let { prompt } = await req.json();
 
-    if (!prompt) {
+    // Handle "Surprise me" logic: if prompt is generic, use a more open-ended prompt
+    if (prompt === "losowy skrypt PowerShell") {
+      prompt = "losowy, użyteczny skrypt PowerShell, np. do zarządzania plikami, procesami, siecią lub systemem"; // Use a more open-ended prompt for AI
+    } else if (!prompt) {
       return new Response(JSON.stringify({ error: "Prompt is required" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,

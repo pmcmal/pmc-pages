@@ -14,10 +14,11 @@ const PowershellScriptGenerator = () => {
   const [generatedScript, setGeneratedScript] = useState<string>("");
   const [explanationText, setExplanationText] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [isSurpriseMeActive, setIsSurpriseMeActive] = useState<boolean>(false);
 
   const handleGenerateScript = async () => {
-    if (!prompt.trim()) {
-      toast.error("Proszę opisać, jaki skrypt PowerShell potrzebujesz.");
+    if (!isSurpriseMeActive && !prompt.trim()) {
+      toast.error("Proszę opisać, jaki skrypt PowerShell potrzebujesz, lub wybrać opcję 'Zaskocz mnie'.");
       return;
     }
 
@@ -25,9 +26,14 @@ const PowershellScriptGenerator = () => {
     setGeneratedScript("");
     setExplanationText("");
 
+    let currentPrompt = prompt.trim();
+    if (isSurpriseMeActive) {
+      currentPrompt = "losowy skrypt PowerShell"; // Send a generic prompt for surprise me
+    }
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-powershell-script', {
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({ prompt: currentPrompt }),
       });
 
       if (error) {
@@ -52,12 +58,10 @@ const PowershellScriptGenerator = () => {
     }
   };
 
-  const handleCopyScript = () => {
-    if (generatedScript) {
-      navigator.clipboard.writeText(generatedScript);
-      toast.info("Skrypt został skopiowany do schowka!");
-    } else {
-      toast.error("Brak skryptu do skopiowania.");
+  const handleSurpriseMeToggle = () => {
+    setIsSurpriseMeActive(!isSurpriseMeActive);
+    if (!isSurpriseMeActive) { // If activating surprise me, clear fields
+      setPrompt("");
     }
   };
 
@@ -65,11 +69,24 @@ const PowershellScriptGenerator = () => {
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
         <CardHeader>
-          <ScripterLogo className="mb-4" /> {/* Użycie nowego komponentu logo */}
+          <ScripterLogo className="mb-4" />
           <CardTitle className="text-2xl font-bold">Generator Skryptów PowerShell</CardTitle>
           <CardDescription>Prosty, bez żadnych reklam szybki dla Ciebie ode mnie.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Button
+              onClick={handleSurpriseMeToggle}
+              variant={isSurpriseMeActive ? "default" : "outline"}
+              disabled={isLoading}
+            >
+              {isSurpriseMeActive ? "Wyłącz 'Zaskocz mnie'" : "Zaskocz mnie!"}
+            </Button>
+            <Label htmlFor="surprise-me-toggle" className="text-sm text-muted-foreground">
+              {isSurpriseMeActive ? "AI wygeneruje losowy skrypt." : "Wypełnij pole lub kliknij 'Zaskocz mnie'."}
+            </Label>
+          </div>
+
           <div className="grid w-full gap-2">
             <Label htmlFor="prompt">Opisz swój skrypt:</Label>
             <Textarea
@@ -78,7 +95,7 @@ const PowershellScriptGenerator = () => {
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={5}
-              disabled={isLoading}
+              disabled={isLoading || isSurpriseMeActive}
             />
             <Button onClick={handleGenerateScript} disabled={isLoading}>
               {isLoading ? "Generowanie..." : "Generuj Skrypt"}
