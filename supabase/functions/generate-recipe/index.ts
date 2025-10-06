@@ -61,9 +61,10 @@ serve(async (req) => {
       parsedResponse = JSON.parse(aiResponseContent);
     } catch (e) {
       console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
+      // Jeśli parsowanie się nie powiedzie, ustaw conversionTable na pusty ciąg
       parsedResponse = {
         recipeText: aiResponseContent,
-        conversionTable: "Nie udało się poprawnie przetworzyć odpowiedzi AI. Proszę dokładnie sprawdzić wygenerowany przepis.",
+        conversionTable: "", // Ustawiamy na pusty ciąg
       };
     }
 
