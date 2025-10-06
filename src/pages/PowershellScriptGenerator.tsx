@@ -65,7 +65,7 @@ const PowershellScriptGenerator = () => {
     <div className="container mx-auto p-4 max-w-3xl">
       <Card className="w-full">
         <CardHeader>
-          <ScripterLogo className="mb-4" /> {/* Dodanie logo Scripter tutaj */}
+          <ScripterLogo className="mb-4" /> {/* Użycie nowego komponentu logo */}
           <CardTitle className="text-2xl font-bold">Generator Skryptów PowerShell</CardTitle>
           <CardDescription>Prosty, bez żadnych reklam szybki dla Ciebie ode mnie.</CardDescription>
         </CardHeader>
