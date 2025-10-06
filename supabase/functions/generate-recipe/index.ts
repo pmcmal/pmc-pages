@@ -36,11 +36,11 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania. Zawsze zwracaj przepis w formacie JSON z polami: \`recipeText\` (zawierającym pełny przepis z listą składników i instrukcjami) oraz \`conversionTable\` (zawierającym prostą tabelę przeliczników wagi na popularne miary, np. łyżeczki, szklanki, dla kilku podstawowych składników jak mąka, cukier, woda, olej. Podaj wartości w gramach i odpowiadające im miary domowe. Upewnij się, że przepis jest łatwy do wykonania. Jeśli zapytanie jest niejasne, poproś o więcej szczegółów.`,
+            content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania, wykorzystując podane przez użytkownika składniki. Zawsze zwracaj przepis w formacie JSON z polami: \`recipeText\` (zawierającym pełny przepis z listą składników i instrukcjami) oraz \`conversionTable\` (zawierającym prostą tabelę przeliczników wagi na popularne miary, np. łyżeczki, szklanki, dla kilku podstawowych składników jak mąka, cukier, woda, olej. Podaj wartości w gramach i odpowiadające im miary domowe. Upewnij się, że przepis jest łatwy do wykonania. Jeśli zapytanie jest niejasne lub brakuje kluczowych składników, poproś o więcej szczegółów lub zasugeruj, co można dodać.`,
           },
           {
             role: "user",
-            content: `Wygeneruj przepis na: ${prompt}`,
+            content: `Wygeneruj przepis na podstawie dostępnych składników: ${prompt}`,
           },
         ],
         max_tokens: 2048,

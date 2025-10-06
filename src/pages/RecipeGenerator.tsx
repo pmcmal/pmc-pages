@@ -17,7 +17,7 @@ const RecipeGenerator = () => {
 
   const handleGenerateRecipe = async () => {
     if (!prompt.trim()) {
-      toast.error("Proszę opisać, jakie danie chcesz przygotować.");
+      toast.error("Proszę wymienić dostępne składniki.");
       return;
     }
 
@@ -58,15 +58,15 @@ const RecipeGenerator = () => {
           <ChefLogo className="mb-4" />
           <CardTitle className="text-2xl font-bold">Generator Przepisów AI</CardTitle>
           <CardDescription>
-            Opisz, jakie danie chcesz przygotować, a my wygenerujemy dla Ciebie szybki i prosty przepis wraz z przelicznikami.
+            Wpisz składniki, które masz w lodówce lub kuchni, a my wygenerujemy dla Ciebie szybki i prosty przepis wraz z przelicznikami.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid w-full gap-2">
-            <Label htmlFor="prompt">Opisz danie:</Label>
+            <Label htmlFor="prompt">Dostępne składniki:</Label>
             <Textarea
               id="prompt"
-              placeholder="Np. 'Szybki obiad wegetariański dla jednej osoby' lub 'Prosta pasta z kurczakiem'."
+              placeholder="Np. 'Kurczak, ryż, brokuły, sos sojowy' lub 'Jajka, mąka, mleko, cukier'."
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               rows={5}
