@@ -26,6 +26,11 @@ const Index = () => {
               Wygeneruj Przepis Kulinarny
             </Button>
           </Link>
+          <Link to="/logo-generator">
+            <Button className="px-6 py-3 text-lg w-full">
+              Wygeneruj Logo
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="mt-8">

@@ -7,7 +7,8 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import PowershellScriptGenerator from "./pages/PowershellScriptGenerator";
 import PhilosopherCoach from "./pages/PhilosopherCoach";
-import RecipeGenerator from "./pages/RecipeGenerator"; // Import the new component
+import RecipeGenerator from "./pages/RecipeGenerator";
+import LogoGenerator from "./pages/LogoGenerator"; // Import the new component
 
 const queryClient = new QueryClient();
 
@@ -21,7 +22,8 @@ const App = () => (
           <Route path="/" element={<Index />} />
           <Route path="/powershell-generator" element={<PowershellScriptGenerator />} />
           <Route path="/philosopher-coach" element={<PhilosopherCoach />} />
-          <Route path="/recipe-generator" element={<RecipeGenerator />} /> {/* New route */}
+          <Route path="/recipe-generator" element={<RecipeGenerator />} />
+          <Route path="/logo-generator" element={<LogoGenerator />} /> {/* New route */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
