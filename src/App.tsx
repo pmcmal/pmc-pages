@@ -8,7 +8,8 @@ import NotFound from "./pages/NotFound";
 import PowershellScriptGenerator from "./pages/PowershellScriptGenerator";
 import PhilosopherCoach from "./pages/PhilosopherCoach";
 import RecipeGenerator from "./pages/RecipeGenerator";
-import StoryGenerator from "./pages/StoryGenerator"; // Nowy import
+import StoryGenerator from "./pages/StoryGenerator";
+import ElectronicProjectGenerator from "./pages/ElectronicProjectGenerator"; // Nowy import
 
 const queryClient = new QueryClient();
 
@@ -23,7 +24,8 @@ const App = () => (
           <Route path="/powershell-generator" element={<PowershellScriptGenerator />} />
           <Route path="/philosopher-coach" element={<PhilosopherCoach />} />
           <Route path="/recipe-generator" element={<RecipeGenerator />} />
-          <Route path="/story-generator" element={<StoryGenerator />} /> {/* Nowa trasa */}
+          <Route path="/story-generator" element={<StoryGenerator />} />
+          <Route path="/electronic-project-generator" element={<ElectronicProjectGenerator />} /> {/* Nowa trasa */}
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
