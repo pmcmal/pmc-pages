@@ -3,69 +3,34 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, Clock, Sun, Cloud, CloudRain } from 'lucide-react';
+import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, Clock, Sun, Cloud, CloudRain, Moon, CloudMoon, Zap, Snowflake, Mist, Question, LocateFixed } from 'lucide-react';
+
+const API_KEY = 'bd5e378503939ddaee76f12ad7a97608'; // Darmowy klucz API OpenWeatherMap
+const API_BASE = 'https://api.openweathermap.org/data/2.5';
+
+// Konwersja ikon OpenWeatherMap na Lucide React
+const getWeatherIconComponent = (iconCode: string) => {
+    const iconMap: { [key: string]: React.ElementType } = {
+        '01d': Sun, '01n': Moon,
+        '02d': CloudSun, '02n': CloudMoon,
+        '03d': Cloud, '03n': Cloud,
+        '04d': Cloud, '04n': Cloud,
+        '09d': CloudRain, '09n': CloudRain,
+        '10d': CloudRain, '10n': CloudRain,
+        '11d': Zap, '11n': Zap,
+        '13d': Snowflake, '13n': Snowflake,
+        '50d': Mist, '50n': Mist
+    };
+    return iconMap[iconCode] || Question;
+};
 
 const WeatherForecastAI = () => {
     const [cityInput, setCityInput] = useState<string>('');
     const [weatherData, setWeatherData] = useState<any>(null);
+    const [forecastData, setForecastData] = useState<any>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [currentTime, setCurrentTime] = useState<string>('');
-
-    // Symulowane dane pogodowe (do zastąpienia prawdziwym API)
-    const getSimulatedWeather = (city: string) => {
-        const data = {
-            'Warszawa': {
-                temp: 15, feels: 13, humidity: 65, wind: 12, pressure: 1013,
-                description: 'częściowe zachmurzenie', icon: 'CloudSun'
-            },
-            'Kraków': {
-                temp: 18, feels: 17, humidity: 55, wind: 8, pressure: 1015,
-                description: 'słonecznie', icon: 'Sun'
-            },
-            'Gdańsk': {
-                temp: 12, feels: 10, humidity: 75, wind: 18, pressure: 1010,
-                description: 'deszczowo', icon: 'CloudRain'
-            }
-        };
-
-        if (data[city as keyof typeof data]) {
-            return data[city as keyof typeof data];
-        } else {
-            // Generuj losowe dane dla nieznanych miejscowości
-            const randomTemp = Math.floor(Math.random() * 25) + 5;
-            const randomDesc = ['słonecznie', 'częściowe zachmurzenie', 'pochmurno', 'deszczowo'][Math.floor(Math.random() * 4)];
-            const randomIcon = ['Sun', 'CloudSun', 'Cloud', 'CloudRain'][Math.floor(Math.random() * 4)];
-            return {
-                temp: randomTemp,
-                feels: randomTemp - 2,
-                humidity: Math.floor(Math.random() * 40) + 40,
-                wind: Math.floor(Math.random() * 20) + 5,
-                pressure: Math.floor(Math.random() * 20) + 1000,
-                description: randomDesc,
-                icon: randomIcon
-            };
-        }
-    };
-
-    const getWeather = () => {
-        if (!cityInput.trim()) {
-            setError('Proszę wpisać nazwę miejscowości');
-            setWeatherData(null);
-            return;
-        }
-
-        setError('');
-        setLoading(true);
-        setWeatherData(null); // Wyczyść poprzednie dane
-
-        // Symulacja opóźnienia API
-        setTimeout(() => {
-            const weather = getSimulatedWeather(cityInput.trim());
-            setWeatherData({ city: cityInput.trim(), ...weather });
-            setLoading(false);
-        }, 1000);
-    };
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -74,40 +39,109 @@ const WeatherForecastAI = () => {
         return () => clearInterval(intervalId);
     }, []);
 
-    const renderWeatherIcon = (iconName: string) => {
-        const IconComponent = {
-            CloudSun, Sun, Cloud, CloudRain,
-        }[iconName as keyof typeof import('lucide-react')];
+    const fetchData = async (url: string) => {
+        setLoading(true);
+        setError('');
+        setWeatherData(null);
+        setForecastData(null);
 
-        return IconComponent ? <IconComponent className="text-yellow-300" size={64} /> : null;
+        try {
+            const currentResponse = await fetch(`${url}&units=metric&lang=pl`);
+            if (!currentResponse.ok) {
+                const errorData = await currentResponse.json();
+                throw new Error(errorData.message || 'Nie znaleziono miejscowości lub wystąpił błąd.');
+            }
+            const currentData = await currentResponse.json();
+
+            const forecastUrl = url.includes('q=') ? `${API_BASE}/forecast?q=${cityInput}&appid=${API_KEY}` : `${API_BASE}/forecast?lat=${currentData.coord.lat}&lon=${currentData.coord.lon}&appid=${API_KEY}`;
+            const forecastResponse = await fetch(`${forecastUrl}&units=metric&lang=pl`);
+            const forecastData = await forecastResponse.json();
+
+            setWeatherData(currentData);
+            setForecastData(forecastData);
+        } catch (err: any) {
+            console.error("Error fetching weather:", err);
+            setError(err.message || 'Wystąpił błąd podczas pobierania danych pogodowych.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getWeatherByCity = () => {
+        if (!cityInput.trim()) {
+            setError('Proszę wpisać nazwę miejscowości');
+            setWeatherData(null);
+            setForecastData(null);
+            return;
+        }
+        fetchData(`${API_BASE}/weather?q=${cityInput}&appid=${API_KEY}`);
+    };
+
+    const getWeatherByLocation = () => {
+        if (!navigator.geolocation) {
+            setError('Twoja przeglądarka nie wspiera geolokalizacji');
+            return;
+        }
+
+        setLoading(true);
+        setError('');
+        setWeatherData(null);
+        setForecastData(null);
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const { latitude, longitude } = position.coords;
+                fetchData(`${API_BASE}/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}`);
+            },
+            (err) => {
+                console.error("Geolocation error:", err);
+                setError('Nie udało się pobrać lokalizacji. Sprawdź uprawnienia w przeglądarce.');
+                setLoading(false);
+            }
+        );
     };
 
     const renderAnalysis = () => {
         if (!weatherData) return null;
         const analysis = [];
-
-        if (weatherData.temp < 10) {
+        const temp = weatherData.main.temp;
+        const humidity = weatherData.main.humidity;
+        const wind = weatherData.wind.speed;
+        const pressure = weatherData.main.pressure;
+        const description = weatherData.weather[0].description;
+        
+        if (temp < 10) {
             analysis.push('🌡️ <strong>Niska temperatura</strong> - Ubierz się ciepło, zalecana kurtka i czapka.');
-        } else if (weatherData.temp > 25) {
+        } else if (temp > 25) {
             analysis.push('🌡️ <strong>Wysoka temperatura</strong> - Pamiętaj o nawodnieniu i ochronie przed słońcem.');
         } else {
             analysis.push('🌡️ <strong>Przyjemna temperatura</strong> - Idealne warunki do spacerów i aktywności na świeżym powietrzu.');
         }
 
-        if (weatherData.humidity > 70) {
+        if (humidity > 70) {
             analysis.push('💧 <strong>Wysoka wilgotność</strong> - Powietrze jest ciężkie, może zwiększać uczucie gorąca.');
-        } else if (weatherData.humidity < 30) {
+        } else if (humidity < 30) {
             analysis.push('💧 <strong>Niska wilgotność</strong> - Powietrze jest suche, zalecane nawilżanie skóry.');
         }
 
-        if (weatherData.wind > 20) {
+        if (wind > 10) {
             analysis.push('💨 <strong>Silny wiatr</strong> - Uważaj podczas jazdy na rowerze, trzymaj się mocno parasola.');
         }
 
-        if (weatherData.pressure < 1000) {
+        if (pressure < 1000) {
             analysis.push('📊 <strong>Niskie ciśnienie</strong> - Mogą wystąpić bóle głowy u osób wrażliwych.');
-        } else if (weatherData.pressure > 1020) {
+        } else if (pressure > 1020) {
             analysis.push('📊 <strong>Wysokie ciśnienie</strong> - Dobre warunki dla sportowców.');
+        }
+
+        if (description.includes('deszcz')) {
+            analysis.push('🌧️ <strong>Opady deszczu</strong> - Weź parasol lub pelerynę.');
+        }
+        if (description.includes('śnieg')) {
+            analysis.push('❄️ <strong>Opady śniegu</strong> - Ostrożnie na chodnikach, mogą być śliskie.');
+        }
+        if (description.includes('burza')) {
+            analysis.push('⛈️ <strong>Burza</strong> - Znajdź schronienie, unikaj otwartych przestrzeni.');
         }
 
         return (
@@ -122,24 +156,53 @@ const WeatherForecastAI = () => {
     };
 
     const renderForecast = () => {
-        if (!weatherData) return null;
+        if (!forecastData) return null;
+        const dailyForecasts: { [key: string]: { temps: number[], humidity: number, icon: string, description: string } } = {};
+        const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
+        
+        forecastData.list.forEach((item: any) => {
+            const date = new Date(item.dt * 1000);
+            const dayName = days[date.getDay()];
+            
+            if (!dailyForecasts[dayName]) {
+                dailyForecasts[dayName] = {
+                    temps: [],
+                    humidity: item.main.humidity,
+                    icon: item.weather[0].icon,
+                    description: item.weather[0].description
+                };
+            }
+            dailyForecasts[dayName].temps.push(item.main.temp);
+        });
+        
         const forecastCards = [];
-        const days = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek'];
-        const icons = ['Sun', 'CloudSun', 'Cloud', 'CloudRain', 'CloudSun']; // Nazwy ikon Lucide
+        let count = 0;
+        const today = new Date().getDay();
 
-        for (let i = 0; i < 5; i++) {
-            const temp = Math.floor(Math.random() * 15) + 10;
-            const IconComponent = { Sun, CloudSun, Cloud, CloudRain }[icons[i] as keyof typeof import('lucide-react')];
-            forecastCards.push(
-                <div key={i} className="bg-white/10 rounded-xl p-4 text-center hover:bg-white/20 transition-colors">
-                    <p className="text-purple-200 font-semibold mb-2">{days[i]}</p>
-                    <div className="text-3xl mb-2">
-                        {IconComponent ? <IconComponent className="text-yellow-300 mx-auto" size={32} /> : null}
+        for (const dayIndex in days) {
+            const dayName = days[dayIndex];
+            if (parseInt(dayIndex) === today) continue; // Skip today
+
+            if (dailyForecasts[dayName] && count < 5) {
+                const data = dailyForecasts[dayName];
+                const minTemp = Math.min(...data.temps);
+                const maxTemp = Math.max(...data.temps);
+                const avgTemp = Math.round((minTemp + maxTemp) / 2);
+                const IconComponent = getWeatherIconComponent(data.icon);
+
+                forecastCards.push(
+                    <div key={dayName} className="bg-white/10 rounded-xl p-4 text-center hover:bg-white/20 transition-colors">
+                        <p className="text-purple-200 font-semibold mb-2">{dayName}</p>
+                        <div className="text-3xl mb-2">
+                            <IconComponent className="text-yellow-300 mx-auto" size={32} />
+                        </div>
+                        <p className="text-2xl font-bold text-white">{avgTemp}°C</p>
+                        <p className="text-sm text-purple-200 mt-1">{Math.round(minTemp)}° / {Math.round(maxTemp)}°</p>
+                        <p className="text-xs text-purple-300 mt-1">{data.humidity}%</p>
                     </div>
-                    <p className="text-2xl font-bold text-white">{temp}°C</p>
-                    <p className="text-sm text-purple-200 mt-1">{Math.floor(Math.random() * 30) + 40}%</p>
-                </div>
-            );
+                );
+                count++;
+            }
         }
 
         return (
@@ -148,7 +211,7 @@ const WeatherForecastAI = () => {
                     <CalendarDays className="inline-block mr-2" size={24} />
                     Prognoza 5-dniowa
                 </h3>
-                <div id="forecastCards" className="grid grid-cols-1 md:grid-cols-5 gap-4">{forecastCards}</div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">{forecastCards}</div>
             </div>
         );
     };
@@ -156,13 +219,17 @@ const WeatherForecastAI = () => {
     const renderRecommendations = () => {
         if (!weatherData) return null;
         const recommendations = [];
-
+        const temp = weatherData.main.temp;
+        const humidity = weatherData.main.humidity;
+        const wind = weatherData.wind.speed;
+        const description = weatherData.weather[0].description;
+        
         let clothing = '';
-        if (weatherData.temp < 5) {
+        if (temp < 5) {
             clothing = '🧥 Gruba kurtka, czapka, szalik, rękawiczki';
-        } else if (weatherData.temp < 15) {
+        } else if (temp < 15) {
             clothing = '🧥 Lekka kurtka lub sweter';
-        } else if (weatherData.temp < 25) {
+        } else if (temp < 25) {
             clothing = '👕 T-shirt i lekka bluza';
         } else {
             clothing = '👕 Lekkie ubranie, krótkie rękawy';
@@ -170,9 +237,9 @@ const WeatherForecastAI = () => {
         recommendations.push(<div key="clothing" className="bg-white/10 rounded-xl p-4"><h4 className="font-bold text-white mb-2">👔 Ubranie</h4><p className="text-purple-100">{clothing}</p></div>);
 
         let activities = '';
-        if (weatherData.description.includes('deszcz')) {
+        if (description.includes('deszcz')) {
             activities = '🏠 Lepiej zostać w domu lub wybrać aktywności wewnętrzne';
-        } else if (weatherData.wind > 15) {
+        } else if (wind > 10) {
             activities = '🏃 Dobry dzień na bieganie, unikaj roweru';
         } else {
             activities = '🚴 Idealny dzień na spacery, jazdę na rowerze, sporty na świeżym powietrzu';
@@ -180,9 +247,9 @@ const WeatherForecastAI = () => {
         recommendations.push(<div key="activities" className="bg-white/10 rounded-xl p-4"><h4 className="font-bold text-white mb-2">🎯 Aktywności</h4><p className="text-purple-100">{activities}</p></div>);
 
         let health = '';
-        if (weatherData.humidity > 70) {
+        if (humidity > 70) {
             health = '💊 Pamiętaj o nawodnieniu, unikaj przegrzania';
-        } else if (weatherData.temp < 10) {
+        } else if (temp < 10) {
             health = '🤧 Wzmocnij odporność, witamina C';
         } else {
             health = '😊 Dobre warunki dla zdrowia';
@@ -190,13 +257,13 @@ const WeatherForecastAI = () => {
         recommendations.push(<div key="health" className="bg-white/10 rounded-xl p-4"><h4 className="font-bold text-white mb-2">💪 Zdrowie</h4><p className="text-purple-100">{health}</p></div>);
 
         let travel = '';
-        if (weatherData.wind > 20 || weatherData.description.includes('deszcz')) {
+        if (wind > 15 || description.includes('deszcz')) {
             travel = '⚠️ Ostrożnie na drodze, możliwe utrudnienia';
         } else {
             travel = '✅ Dobre warunki do podróży';
         }
         recommendations.push(<div key="travel" className="bg-white/10 rounded-xl p-4"><h4 className="font-bold text-white mb-2">🚗 Podróż</h4><p className="text-purple-100">{travel}</p></div>);
-
+        
         return (
             <div className="glass-effect rounded-2xl p-6">
                 <h3 className="text-2xl font-bold text-white mb-4">
@@ -232,15 +299,22 @@ const WeatherForecastAI = () => {
                                     className="w-full px-6 py-4 rounded-xl text-lg border-2 border-purple-300 focus:border-purple-500 focus:outline-none transition-colors bg-transparent text-white placeholder-purple-200"
                                     value={cityInput}
                                     onChange={(e) => setCityInput(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && getWeather()}
+                                    onKeyPress={(e) => e.key === 'Enter' && getWeatherByCity()}
                                 />
                             </div>
                             <Button
-                                onClick={getWeather}
+                                onClick={getWeatherByCity}
                                 className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
                             >
                                 <Search className="mr-2 inline-block" size={20} />
                                 Sprawdź pogodę
+                            </Button>
+                            <Button
+                                onClick={getWeatherByLocation}
+                                className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                            >
+                                <LocateFixed className="mr-2 inline-block" size={20} />
+                                Moja lokalizacja
                             </Button>
                         </div>
                         {error && <div className="mt-4 text-red-300">{error}</div>}
@@ -263,15 +337,15 @@ const WeatherForecastAI = () => {
                                 <div>
                                     <h2 className="text-3xl font-bold text-white mb-4">
                                         <MapPin className="inline-block mr-2" size={24} />
-                                        <span>{weatherData.city}</span>
+                                        <span>{weatherData.name}, {weatherData.sys.country}</span>
                                     </h2>
                                     <div className="flex items-center gap-4 mb-6">
                                         <div className="text-6xl">
-                                            {renderWeatherIcon(weatherData.icon)}
+                                            {React.createElement(getWeatherIconComponent(weatherData.weather[0].icon), { className: "text-yellow-300", size: 64 })}
                                         </div>
                                         <div>
-                                            <div className="text-5xl font-bold text-white">{weatherData.temp}°C</div>
-                                            <div className="text-xl text-purple-200">{weatherData.description}</div>
+                                            <div className="text-5xl font-bold text-white">{Math.round(weatherData.main.temp)}°C</div>
+                                            <div className="text-xl text-purple-200">{weatherData.weather[0].description}</div>
                                         </div>
                                     </div>
                                     <div className="text-purple-200">
@@ -283,22 +357,22 @@ const WeatherForecastAI = () => {
                                     <div className="bg-white/10 rounded-xl p-4">
                                         <Thermometer className="text-2xl text-orange-300 mb-2" size={24} />
                                         <p className="text-purple-200 text-sm">Odczuwalna</p>
-                                        <p className="text-2xl font-bold text-white">{weatherData.feels}°C</p>
+                                        <p className="text-2xl font-bold text-white">{Math.round(weatherData.main.feels_like)}°C</p>
                                     </div>
                                     <div className="bg-white/10 rounded-xl p-4">
                                         <Droplet className="text-2xl text-blue-300 mb-2" size={24} />
                                         <p className="text-purple-200 text-sm">Wilgotność</p>
-                                        <p className="text-2xl font-bold text-white">{weatherData.humidity}%</p>
+                                        <p className="text-2xl font-bold text-white">{weatherData.main.humidity}%</p>
                                     </div>
                                     <div className="bg-white/10 rounded-xl p-4">
                                         <Wind className="text-2xl text-gray-300 mb-2" size={24} />
                                         <p className="text-purple-200 text-sm">Wiatr</p>
-                                        <p className="text-2xl font-bold text-white">{weatherData.wind} km/h</p>
+                                        <p className="text-2xl font-bold text-white">{weatherData.wind.speed} m/s</p>
                                     </div>
                                     <div className="bg-white/10 rounded-xl p-4">
                                         <Gauge className="text-2xl text-purple-300 mb-2" size={24} />
                                         <p className="text-purple-200 text-sm">Ciśnienie</p>
-                                        <p className="text-2xl font-bold text-white">{weatherData.pressure} hPa</p>
+                                        <p className="text-2xl font-bold text-white">{weatherData.main.pressure} hPa</p>
                                     </div>
                                 </div>
                             </div>
@@ -310,7 +384,7 @@ const WeatherForecastAI = () => {
                 {weatherData && renderAnalysis()}
 
                 {/* 5-Day Forecast */}
-                {weatherData && renderForecast()}
+                {forecastData && renderForecast()}
 
                 {/* Recommendations */}
                 {weatherData && renderRecommendations()}
