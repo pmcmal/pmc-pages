@@ -50,6 +50,11 @@ const Index = () => {
               Wygeneruj Pomysł na Projekt Elektroniczny
             </Button>
           </Link>
+          <Link to="/short-ai-course">
+            <Button className="px-4 py-2 text-base sm:px-6 sm:py-3 sm:text-lg w-full">
+              Krótki Kurs AI
+            </Button>
+          </Link>
         </div>
       </div>
       <div className="mt-8 flex flex-col items-center">
