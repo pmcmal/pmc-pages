@@ -160,9 +160,6 @@
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
 }
-.weather-card {
-    transition: all 0.3s ease;
-}
 .weather-card:hover {
     transform: translateY(-5px);
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
@@ -190,4 +187,95 @@
 
 .blink {
     animation: blink 1s infinite;
+}
+
+/* Custom styles for Online Radio page */
+body {
+  background: radial-gradient(circle at top, #262626 0, #000 55%, #020617 100%);
+}
+
+.glass {
+  background: radial-gradient(circle at top left, rgba(148, 163, 184, 0.15), rgba(15, 23, 42, 0.96));
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow:
+    0 22px 55px rgba(0, 0, 0, 0.85),
+    0 0 0 1px rgba(15, 23, 42, 0.8);
+}
+
+.btn-main {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-main::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: conic-gradient(from 140deg, #22c55e, #22d3ee, #6366f1, #22c55e);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  mix-blend-mode: screen;
+}
+
+.btn-main:hover::before {
+  opacity: 0.45;
+}
+
+.btn-main span {
+  position: relative;
+  z-index: 1;
+}
+
+.pulse-ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 9999px;
+  border: 1px solid rgba(34, 197, 94, 0.7);
+  box-shadow: 0 0 32px rgba(34, 197, 94, 0.65);
+  animation: pulse 1.7s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.9; transform: scale(1); }
+  70% { opacity: 0; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(1.25); }
+}
+
+.station-active {
+  background: linear-gradient(120deg, rgba(56, 189, 248, 0.1), rgba(59, 130, 246, 0.28));
+  border-color: rgba(96, 165, 250, 0.9);
+  box-shadow: 0 0 35px rgba(59, 130, 246, 0.55);
+}
+
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #22c55e, #0ea5e9, #6366f1);
+  outline: none;
+  cursor: pointer;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #020617;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+}
+
+.slider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #020617;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
 }
