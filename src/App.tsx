@@ -13,6 +13,7 @@ import StoryGenerator from "./pages/StoryGenerator";
 import ElectronicProjectGenerator from "./pages/ElectronicProjectGenerator";
 import ShortAICourse from "./pages/ShortAICourse";
 import WeatherForecastAI from "./pages/WeatherForecastAI";
+import SpaceInvaders from "./pages/SpaceInvaders"; // Import nowego komponentu
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/electronic-project-generator" element={<ElectronicProjectGenerator />} />
             <Route path="/short-ai-course" element={<ShortAICourse />} />
             <Route path="/weather-forecast-ai" element={<WeatherForecastAI />} />
+            <Route path="/space-invaders" element={<SpaceInvaders />} /> {/* Nowa trasa */}
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

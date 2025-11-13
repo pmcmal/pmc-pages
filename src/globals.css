@@ -167,3 +167,27 @@
     transform: translateY(-5px);
     box-shadow: 0 20px 40px rgba(0,0,0,0.1);
 }
+
+/* Custom styles for Space Invaders page */
+.space-invaders-bg {
+    background: linear-gradient(180deg, #000428 0%, #004e92 100%);
+    overflow: hidden;
+}
+
+#gameCanvas {
+    border: 2px solid #00ff00;
+    box-shadow: 0 0 20px #00ff00;
+}
+
+.glow-text {
+    text-shadow: 0 0 10px currentColor;
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+.blink {
+    animation: blink 1s infinite;
+}
