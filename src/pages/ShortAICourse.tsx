@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
 import { Brain, MessageSquareText, Image, ShieldHalf, Bot, User, BookOpen, Terminal, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,18 +29,23 @@ interface Message {
     isTyping?: boolean;
 }
 
+interface QuizState {
+    correctAnswers: boolean[]; // Które pytania zostały odpowiedziane poprawnie
+    selectedOption: (number | null)[]; // Wybrana opcja dla każdego pytania (null jeśli nie wybrano)
+    showResults: boolean;
+}
+
 const ShortAICourse = () => {
     const [messages, setMessages] = useState<Message[]>([
         { text: "Cześć! Jestem Twoim asystentem treningowym AI. Wpisz poniżej dowolne polecenie lub wybierz przykład, aby zobaczyć, jak działam!", sender: 'ai' }
     ]);
     const [userInput, setUserInput] = useState<string>('');
-    const [quizState, setQuizState] = useState({
-        score: 0,
-        answered: Array(quizData.length).fill(false),
+    const [quizState, setQuizState] = useState<QuizState>({
+        correctAnswers: Array(quizData.length).fill(false),
+        selectedOption: Array(quizData.length).fill(null),
         showResults: false,
     });
-    const [currentQuizQuestions, setCurrentQuizQuestions] = useState<typeof quizData>([]);
-    const [quizScoreDisplay, setQuizScoreDisplay] = useState('0/0');
+    const [currentQuizQuestions, setCurrentQuizQuestions] = useState<typeof quizData>(quizData);
 
     const chatWindowRef = useRef<HTMLDivElement>(null);
     const userInputRef = useRef<HTMLInputElement>(null);
@@ -59,7 +63,10 @@ const ShortAICourse = () => {
     }, []);
 
     const scrollToSection = (id: string) => {
-        document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
+        const element = document.getElementById(id);
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
     };
 
     const fillPrompt = (text: string) => {
@@ -97,7 +104,7 @@ const ShortAICourse = () => {
         setTimeout(() => {
             setMessages(prev => [...prev, { text: '', sender: 'ai', isTyping: true }]);
             
-            let response = generateResponse(text);
+            const response = generateResponse(text);
             
             setTimeout(() => {
                 setMessages(prev => prev.map(msg => msg.isTyping ? { ...msg, text: response, isTyping: false } : msg));
@@ -107,31 +114,42 @@ const ShortAICourse = () => {
 
     const initQuiz = () => {
         setQuizState({
-            score: 0,
-            answered: Array(quizData.length).fill(false),
+            correctAnswers: Array(quizData.length).fill(false),
+            selectedOption: Array(quizData.length).fill(null),
             showResults: false,
         });
         setCurrentQuizQuestions(quizData);
-        setQuizScoreDisplay(`0/${quizData.length}`);
     };
 
     const checkAnswer = (qIndex: number, optIndex: number) => {
-        if (quizState.answered[qIndex]) return;
+        // Jeśli pytanie już zostało odpowiedziane poprawnie lub opcja została już wybrana, nie pozwalaj na zmianę
+        if (quizState.correctAnswers[qIndex] || quizState.selectedOption[qIndex] !== null) return;
 
         const isCorrect = optIndex === quizData[qIndex].correct;
         
         setQuizState(prev => {
-            const newAnswered = [...prev.answered];
-            newAnswered[qIndex] = true;
-            const newScore = isCorrect ? prev.score + 1 : prev.score;
-            setQuizScoreDisplay(`${newScore}/${quizData.length}`);
-            return { ...prev, score: newScore, answered: newAnswered };
+            const newCorrectAnswers = [...prev.correctAnswers];
+            const newSelectedOption = [...prev.selectedOption];
+
+            newSelectedOption[qIndex] = optIndex; // Zapisz wybraną opcję
+
+            if (isCorrect) {
+                newCorrectAnswers[qIndex] = true; // Oznacz pytanie jako poprawnie rozwiązane
+            }
+            
+            return { 
+                ...prev, 
+                correctAnswers: newCorrectAnswers, 
+                selectedOption: newSelectedOption 
+            };
         });
     };
 
     const finishQuiz = () => {
         setQuizState(prev => ({ ...prev, showResults: true }));
     };
+
+    const correctCount = quizState.correctAnswers.filter(answer => answer === true).length;
 
     return (
         <div className="bg-slate-900 text-slate-100 antialiased selection:bg-indigo-500 selection:text-white">
@@ -143,10 +161,10 @@ const ShortAICourse = () => {
                         <span>Akademia<span className="text-indigo-500">AI</span></span>
                     </div>
                     <div className="hidden md:flex gap-6 text-sm font-medium text-slate-300">
-                        <a href="#start" onClick={() => scrollToSection('start')} className="hover:text-white transition">Start</a>
-                        <a href="#teoria" onClick={() => scrollToSection('teoria')} className="hover:text-white transition">Lekcje</a>
-                        <a href="#symulator" onClick={() => scrollToSection('symulator')} className="hover:text-white transition">Symulator</a>
-                        <a href="#quiz" onClick={() => scrollToSection('quiz')} className="hover:text-white transition">Quiz</a>
+                        <button onClick={() => scrollToSection('start')} className="hover:text-white transition">Start</button>
+                        <button onClick={() => scrollToSection('teoria')} className="hover:text-white transition">Lekcje</button>
+                        <button onClick={() => scrollToSection('symulator')} className="hover:text-white transition">Symulator</button>
+                        <button onClick={() => scrollToSection('quiz')} className="hover:text-white transition">Quiz</button>
                     </div>
                     <Button onClick={() => scrollToSection('teoria')} className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-full text-sm font-semibold transition shadow-lg shadow-indigo-500/20">
                         Zacznij Naukę
@@ -160,7 +178,7 @@ const ShortAICourse = () => {
                 
                 <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
                     Zrozum Sztuczną Inteligencję <br />
-                    <span className="gradient-text">w 15 minut</span>
+                    <span className="bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">w 15 minut</span>
                 </h1>
                 <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-10">
                     Darmowy, interaktywny przewodnik od podstaw do praktyki. Naucz się pisać prompty, generować treści i używać narzędzi AI.
@@ -187,7 +205,7 @@ const ShortAICourse = () => {
                         {/* Module 1 */}
                         <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-indigo-500/50 transition group">
                             <div className="w-12 h-12 bg-indigo-900/50 rounded-lg flex items-center justify-center mb-4 text-indigo-400 group-hover:scale-110 transition">
-                                <Brain className="text-xl" />
+                                <Brain />
                             </div>
                             <h3 className="text-xl font-bold mb-2">1. Czym jest AI?</h3>
                             <p className="text-slate-400 text-sm leading-relaxed">
@@ -200,26 +218,26 @@ const ShortAICourse = () => {
                         {/* Module 2 */}
                         <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-indigo-500/50 transition group">
                             <div className="w-12 h-12 bg-purple-900/50 rounded-lg flex items-center justify-center mb-4 text-purple-400 group-hover:scale-110 transition">
-                                <MessageSquareText className="text-xl" />
+                                <MessageSquareText />
                             </div>
                             <h3 className="text-xl font-bold mb-2">2. Sztuka Promptowania</h3>
                             <p className="text-slate-400 text-sm leading-relaxed">
                                 <strong>Prompt</strong> to instrukcja, którą wpisujesz do AI. Jakość odpowiedzi zależy od jakości zapytania.
                                 <br /><br />
                                 Dobry prompt zawiera:
-                                <ul className="list-disc list-inside mt-2 text-slate-500">
-                                    <li><strong>Rolę:</strong> "Zachowuj się jak ekspert marketingu..."</li>
-                                    <li><strong>Kontekst:</strong> "Piszę e-mail do klienta..."</li>
-                                    <li><strong>Zadanie:</strong> "Napisz 3 propozycje tematu..."</li>
-                                    <li><strong>Format:</strong> "Przedstaw w liście punktowanej."</li>
-                                </ul>
                             </p>
+                            <ul className="list-disc list-inside mt-2 text-slate-500 space-y-1">
+                                <li><strong className="text-slate-400">Rolę:</strong> "Zachowuj się jak ekspert marketingu..."</li>
+                                <li><strong className="text-slate-400">Kontekst:</strong> "Piszę e-mail do klienta..."</li>
+                                <li><strong className="text-slate-400">Zadanie:</strong> "Napisz 3 propozycje tematu..."</li>
+                                <li><strong className="text-slate-400">Format:</strong> "Przedstaw w liście punktowanej."</li>
+                            </ul>
                         </div>
 
                         {/* Module 3 */}
                         <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-indigo-500/50 transition group">
                             <div className="w-12 h-12 bg-pink-900/50 rounded-lg flex items-center justify-center mb-4 text-pink-400 group-hover:scale-110 transition">
-                                <Image className="text-xl" />
+                                <Image />
                             </div>
                             <h3 className="text-xl font-bold mb-2">3. Generowanie Obrazów</h3>
                             <p className="text-slate-400 text-sm leading-relaxed">
@@ -232,7 +250,7 @@ const ShortAICourse = () => {
                         {/* Module 4 */}
                         <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 hover:border-indigo-500/50 transition group">
                             <div className="w-12 h-12 bg-emerald-900/50 rounded-lg flex items-center justify-center mb-4 text-emerald-400 group-hover:scale-110 transition">
-                                <ShieldHalf className="text-xl" />
+                                <ShieldHalf />
                             </div>
                             <h3 className="text-xl font-bold mb-2">4. Ograniczenia i Etyka</h3>
                             <p className="text-slate-400 text-sm leading-relaxed">
@@ -259,7 +277,7 @@ const ShortAICourse = () => {
                             {messages.map((msg, index) => (
                                 <div key={index} className={`flex gap-3 ${msg.sender === 'user' ? 'flex-row-reverse' : ''}`}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'user' ? 'bg-slate-700' : 'bg-indigo-600'}`}>
-                                        {msg.sender === 'user' ? <User className="text-white text-xs" /> : <Bot className="text-white text-xs" />}
+                                        {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                                     </div>
                                     <div className={`rounded-2xl px-4 py-2 text-sm max-w-[80%] ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none'} ${msg.isTyping ? 'typing-cursor' : ''}`}>
                                         {msg.isTyping ? (
@@ -301,7 +319,7 @@ const ShortAICourse = () => {
                                     ref={userInputRef}
                                 />
                                 <Button onClick={sendMessage} className="absolute right-2 top-1/2 -translate-y-1/2 bg-indigo-600 hover:bg-indigo-700 text-white w-8 h-8 rounded-md flex items-center justify-center transition">
-                                    <Send className="text-xs" />
+                                    <Send className="w-4 h-4" />
                                 </Button>
                             </div>
                         </div>
@@ -319,24 +337,42 @@ const ShortAICourse = () => {
                             <div key={qIndex} className="mb-8 last:mb-0">
                                 <p className="font-bold text-lg mb-3 text-white">{qIndex + 1}. {q.question}</p>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                    {q.options.map((opt, optIndex) => (
-                                        <Button
-                                            key={optIndex}
-                                            onClick={() => checkAnswer(qIndex, optIndex)}
-                                            className={`text-left px-4 py-3 rounded-lg border transition text-sm text-slate-300 w-full justify-start
-                                                ${quizState.answered[qIndex] && optIndex === q.correct ? 'bg-green-900/50 border-green-500' : ''}
-                                                ${quizState.answered[qIndex] && optIndex !== q.correct && optIndex === quizState.answered[qIndex] ? 'bg-red-900/50 border-red-500' : ''}
-                                                ${!quizState.answered[qIndex] ? 'bg-slate-800 hover:bg-slate-700 border-slate-600' : ''}
-                                            `}
-                                            disabled={quizState.answered[qIndex]}
-                                        >
-                                            {opt}
-                                        </Button>
-                                    ))}
+                                    {q.options.map((opt, optIndex) => {
+                                        const isCorrectOption = optIndex === q.correct;
+                                        const isSelected = quizState.selectedOption[qIndex] === optIndex;
+                                        const isQuestionAnswered = quizState.selectedOption[qIndex] !== null;
+
+                                        let buttonClasses = 'text-left px-4 py-3 rounded-lg border transition text-sm text-slate-300 w-full justify-start';
+
+                                        if (isQuestionAnswered) {
+                                            if (isCorrectOption && isSelected) {
+                                                buttonClasses += ' bg-green-900/50 border-green-500'; // Poprawna i wybrana
+                                            } else if (!isCorrectOption && isSelected) {
+                                                buttonClasses += ' bg-red-900/50 border-red-500'; // Błędna i wybrana
+                                            } else if (isCorrectOption && !isSelected) {
+                                                buttonClasses += ' border-green-500'; // Poprawna, ale nie wybrana (po udzieleniu odpowiedzi)
+                                            } else {
+                                                buttonClasses += ' bg-slate-800 border-slate-600 opacity-50'; // Inne opcje po udzieleniu odpowiedzi
+                                            }
+                                        } else {
+                                            buttonClasses += ' bg-slate-800 hover:bg-slate-700 border-slate-600'; // Domyślny styl przed odpowiedzią
+                                        }
+
+                                        return (
+                                            <Button
+                                                key={optIndex}
+                                                onClick={() => checkAnswer(qIndex, optIndex)}
+                                                className={buttonClasses}
+                                                disabled={isQuestionAnswered} // Wyłącz przycisk po udzieleniu odpowiedzi
+                                            >
+                                                {opt}
+                                            </Button>
+                                        );
+                                    })}
                                 </div>
-                                {quizState.answered[qIndex] && (
-                                    <p className={`mt-2 text-sm font-semibold ${quizData[qIndex].correct === (quizState.answered[qIndex] && quizData[qIndex].options.indexOf(quizData[qIndex].options.find((_, i) => i === quizData[qIndex].correct) || '')) ? 'text-green-400' : 'text-red-400'}`}>
-                                        {quizData[qIndex].correct === (quizState.answered[qIndex] && quizData[qIndex].options.indexOf(quizData[qIndex].options.find((_, i) => i === quizData[qIndex].correct) || '')) ? '✅ Dobra odpowiedź!' : '❌ Niestety, to nie to.'}
+                                {quizState.selectedOption[qIndex] !== null && (
+                                    <p className={`mt-2 text-sm font-semibold ${quizState.correctAnswers[qIndex] ? 'text-green-400' : 'text-red-400'}`}>
+                                        {quizState.correctAnswers[qIndex] ? '✅ Dobra odpowiedź!' : '❌ Niestety, to nieprawidłowa odpowiedź. Spróbuj ponownie.'}
                                     </p>
                                 )}
                             </div>
@@ -349,7 +385,7 @@ const ShortAICourse = () => {
                     <div ref={quizResultRef} className={`bg-slate-900 border border-green-900 rounded-2xl p-8 ${quizState.showResults ? '' : 'hidden'}`}>
                         <div className="text-6xl mb-4">🎉</div>
                         <h3 className="text-2xl font-bold text-white mb-2">Gratulacje!</h3>
-                        <p className="text-slate-400 mb-6">Ukończyłeś szybki kurs AI. Twój wynik: <span id="score-display" className="text-indigo-400 font-bold text-xl">{quizScoreDisplay}</span></p>
+                        <p className="text-slate-400 mb-6">Ukończyłeś szybki kurs AI. Twój wynik: <span id="score-display" className="text-indigo-400 font-bold text-xl">{correctCount}/{quizData.length}</span></p>
                         <Button onClick={initQuiz} className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-lg transition">
                             Powtórz Quiz
                         </Button>
