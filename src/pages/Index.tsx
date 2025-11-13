@@ -60,11 +60,6 @@ const Index = () => {
               Prognoza Pogody AI
             </Button>
           </Link>
-          <Link to="/snake-game">
-            <Button className="px-4 py-2 text-base sm:px-6 sm:py-3 sm:text-lg w-full">
-              Gra w Snake
-            </Button>
-          </Link>
         </div>
       </div>
       <div className="mt-8 flex flex-col items-center">
