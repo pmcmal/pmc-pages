@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Brain, MessageSquareText, Image, ShieldHalf, Bot, User, BookOpen, Terminal, Send } from 'lucide-react';
+import { Brain, MessageSquareText, Image, ShieldHalf, Bot, User, BookOpen, Terminal, Send, Download, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
@@ -30,9 +30,15 @@ interface Message {
 }
 
 interface QuizState {
-    correctAnswers: boolean[]; // Które pytania zostały odpowiedziane poprawnie
-    selectedOption: (number | null)[]; // Wybrana opcja dla każdego pytania (null jeśli nie wybrano)
+    correctAnswers: boolean[];
+    wrongAttempts: Set<string>;
     showResults: boolean;
+}
+
+interface CertificateData {
+    name: string;
+    date: string;
+    certificateId: string;
 }
 
 const ShortAICourse = () => {
@@ -42,15 +48,19 @@ const ShortAICourse = () => {
     const [userInput, setUserInput] = useState<string>('');
     const [quizState, setQuizState] = useState<QuizState>({
         correctAnswers: Array(quizData.length).fill(false),
-        selectedOption: Array(quizData.length).fill(null),
+        wrongAttempts: new Set(),
         showResults: false,
     });
     const [currentQuizQuestions, setCurrentQuizQuestions] = useState<typeof quizData>(quizData);
+    const [showCertificateForm, setShowCertificateForm] = useState(false);
+    const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
+    const [userName, setUserName] = useState('');
 
     const chatWindowRef = useRef<HTMLDivElement>(null);
     const userInputRef = useRef<HTMLInputElement>(null);
     const quizContainerRef = useRef<HTMLDivElement>(null);
     const quizResultRef = useRef<HTMLDivElement>(null);
+    const certificateRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         if (chatWindowRef.current) {
@@ -115,40 +125,108 @@ const ShortAICourse = () => {
     const initQuiz = () => {
         setQuizState({
             correctAnswers: Array(quizData.length).fill(false),
-            selectedOption: Array(quizData.length).fill(null),
+            wrongAttempts: new Set(),
             showResults: false,
         });
         setCurrentQuizQuestions(quizData);
+        setShowCertificateForm(false);
+        setCertificateData(null);
+        setUserName('');
     };
 
     const checkAnswer = (qIndex: number, optIndex: number) => {
-        // Jeśli pytanie już zostało odpowiedziane poprawnie lub opcja została już wybrana, nie pozwalaj na zmianę
-        if (quizState.correctAnswers[qIndex] || quizState.selectedOption[qIndex] !== null) return;
+        if (quizState.correctAnswers[qIndex]) return;
+
+        const attemptKey = `${qIndex}-${optIndex}`;
+        
+        if (quizState.wrongAttempts.has(attemptKey)) return;
 
         const isCorrect = optIndex === quizData[qIndex].correct;
         
-        setQuizState(prev => {
-            const newCorrectAnswers = [...prev.correctAnswers];
-            const newSelectedOption = [...prev.selectedOption];
-
-            newSelectedOption[qIndex] = optIndex; // Zapisz wybraną opcję
-
-            if (isCorrect) {
-                newCorrectAnswers[qIndex] = true; // Oznacz pytanie jako poprawnie rozwiązane
-            }
-            
-            return { 
-                ...prev, 
-                correctAnswers: newCorrectAnswers, 
-                selectedOption: newSelectedOption 
-            };
-        });
+        if (isCorrect) {
+            setQuizState(prev => {
+                const newCorrectAnswers = [...prev.correctAnswers];
+                newCorrectAnswers[qIndex] = true;
+                return { ...prev, correctAnswers: newCorrectAnswers };
+            });
+        } else {
+            setQuizState(prev => ({
+                ...prev,
+                wrongAttempts: new Set([...prev.wrongAttempts, attemptKey])
+            }));
+        }
     };
 
     const finishQuiz = () => {
         setQuizState(prev => ({ ...prev, showResults: true }));
+        const allCorrect = quizState.correctAnswers.every(answer => answer === true);
+        if (allCorrect) {
+            setShowCertificateForm(true);
+        }
     };
 
+    const generateCertificate = () => {
+        if (!userName.trim()) return;
+        
+        const date = new Date().toLocaleDateString('pl-PL', { 
+            year: 'numeric', 
+            month: 'long', 
+            day: 'numeric' 
+        });
+        
+        const certificateId = `AI-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+        
+        setCertificateData({
+            name: userName,
+            date: date,
+            certificateId: certificateId
+        });
+        setShowCertificateForm(false);
+    };
+
+    const downloadCertificate = () => {
+        // W prawdziwej aplikacji użyłbyś biblioteki jak html2canvas lub jsPDF
+        // Tutaj symulujemy pobieranie
+        const certificateHTML = `
+            <html>
+            <head>
+                <title>Certyfikat - ${certificateData?.name}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); }
+                    .certificate { background: white; padding: 60px; border-radius: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); max-width: 800px; text-align: center; }
+                    h1 { color: #333; margin-bottom: 30px; font-size: 36px; }
+                    .name { font-size: 32px; color: #667eea; margin: 30px 0; font-weight: bold; }
+                    .date { color: #666; margin-top: 40px; }
+                    .id { color: #999; font-size: 12px; margin-top: 20px; }
+                </style>
+            </head>
+            <body>
+                <div class="certificate">
+                    <h1>🏆 Certyfikat Ukończenia</h1>
+                    <p>Zaświadcza się, że</p>
+                    <p class="name">${certificateData?.name}</p>
+                    <p>ukończył(a) z wyróżnieniem</p>
+                    <h2>Kurs Podstaw Sztucznej Inteligencji</h2>
+                    <p>Akademia AI</p>
+                    <p class="date">Data: ${certificateData?.date}</p>
+                    <p class="id">ID: ${certificateData?.certificateId}</p>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        const blob = new Blob([certificateHTML], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `certyfikat_AI_${certificateData?.name.replace(/\s+/g, '_')}.html`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const allQuestionsCorrect = quizState.correctAnswers.every(answer => answer === true);
     const correctCount = quizState.correctAnswers.filter(answer => answer === true).length;
 
     return (
@@ -279,7 +357,7 @@ const ShortAICourse = () => {
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${msg.sender === 'user' ? 'bg-slate-700' : 'bg-indigo-600'}`}>
                                         {msg.sender === 'user' ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
                                     </div>
-                                    <div className={`rounded-2xl px-4 py-2 text-sm max-w-[80%] ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none'} ${msg.isTyping ? 'typing-cursor' : ''}`}>
+                                    <div className={`rounded-2xl px-4 py-2 text-sm max-w-[80%] ${msg.sender === 'user' ? 'bg-indigo-600 text-white rounded-tr-none' : 'bg-slate-800 text-slate-200 rounded-tl-none'}`}>
                                         {msg.isTyping ? (
                                             <div className="flex items-center gap-1">
                                                 <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div>
@@ -287,7 +365,7 @@ const ShortAICourse = () => {
                                                 <div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                                             </div>
                                         ) : (
-                                            msg.text
+                                            <div className="whitespace-pre-wrap">{msg.text}</div>
                                         )}
                                     </div>
                                 </div>
@@ -296,21 +374,20 @@ const ShortAICourse = () => {
 
                         {/* Input Area */}
                         <div className="p-4 bg-slate-950 border-t border-slate-800">
-                            <div className="flex gap-2 mb-3 overflow-x-auto pb-2 no-scrollbar">
+                            <div className="flex gap-2 mb-3 overflow-x-auto pb-2">
                                 <Button variant="outline" onClick={() => fillPrompt('Napisz krótki wiersz o programowaniu.')} className="whitespace-nowrap bg-slate-800 hover:bg-slate-700 text-xs text-indigo-300 px-3 py-1.5 rounded-full transition border border-indigo-900/30">
-                                    ? Wiersz o kodzie
+                                    📝 Wiersz o kodzie
                                 </Button>
                                 <Button variant="outline" onClick={() => fillPrompt('Wyjaśnij 5-latkowi czym jest czarna dziura.')} className="whitespace-nowrap bg-slate-800 hover:bg-slate-700 text-xs text-indigo-300 px-3 py-1.5 rounded-full transition border border-indigo-900/30">
-                                    ? Fizyka dla 5-latka
+                                    🌌 Fizyka dla 5-latka
                                 </Button>
                                 <Button variant="outline" onClick={() => fillPrompt('Podaj przepis na naleśniki.')} className="whitespace-nowrap bg-slate-800 hover:bg-slate-700 text-xs text-indigo-300 px-3 py-1.5 rounded-full transition border border-indigo-900/30">
-                                    ? Przepis
+                                    🥞 Przepis
                                 </Button>
                             </div>
                             <div className="relative">
                                 <Input
                                     type="text"
-                                    id="user-input"
                                     placeholder="Wpisz swój prompt tutaj..."
                                     className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-4 pr-12 py-3 text-white focus:outline-none focus:border-indigo-500 transition"
                                     value={userInput}
@@ -330,66 +407,210 @@ const ShortAICourse = () => {
             {/* Quiz Section */}
             <section id="quiz" className="py-20 bg-indigo-900/20 border-t border-slate-800">
                 <div className="max-w-3xl mx-auto px-4 text-center">
-                    <h2 className="text-3xl font-bold mb-8">Sprawdź swoją wiedzę</h2>
+                    <h2 className="text-3xl font-bold mb-4">Sprawdź swoją wiedzę</h2>
+                    <p className="text-slate-400 mb-8">
+                        Próbuj odpowiadać aż znajdziesz wszystkie poprawne odpowiedzi!
+                    </p>
                     
                     <div ref={quizContainerRef} className={`bg-slate-900 border border-slate-700 rounded-2xl p-8 text-left ${quizState.showResults ? 'hidden' : ''}`}>
+                        {/* Progress Bar */}
+                        <div className="mb-8">
+                            <div className="flex justify-between text-sm text-slate-400 mb-2">
+                                <span>Postęp</span>
+                                <span>{correctCount}/{quizData.length} poprawnych odpowiedzi</span>
+                            </div>
+                            <div className="w-full bg-slate-800 rounded-full h-2">
+                                <div 
+                                    className="bg-gradient-to-r from-indigo-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                                    style={{ width: `${(correctCount / quizData.length) * 100}%` }}
+                                />
+                            </div>
+                        </div>
+
                         {currentQuizQuestions.map((q, qIndex) => (
                             <div key={qIndex} className="mb-8 last:mb-0">
-                                <p className="font-bold text-lg mb-3 text-white">{qIndex + 1}. {q.question}</p>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="flex items-start gap-3 mb-3">
+                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all ${
+                                        quizState.correctAnswers[qIndex] 
+                                            ? 'bg-green-500 text-white' 
+                                            : 'bg-slate-700 text-slate-400'
+                                    }`}>
+                                        {quizState.correctAnswers[qIndex] ? '✓' : qIndex + 1}
+                                    </div>
+                                    <p className="font-bold text-lg text-white flex-1">{q.question}</p>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 ml-11">
                                     {q.options.map((opt, optIndex) => {
-                                        const isCorrectOption = optIndex === q.correct;
-                                        const isSelected = quizState.selectedOption[qIndex] === optIndex;
-                                        const isQuestionAnswered = quizState.selectedOption[qIndex] !== null;
-
-                                        let buttonClasses = 'text-left px-4 py-3 rounded-lg border transition text-sm text-slate-300 w-full justify-start';
-
-                                        if (isQuestionAnswered) {
-                                            if (isCorrectOption && isSelected) {
-                                                buttonClasses += ' bg-green-900/50 border-green-500'; // Poprawna i wybrana
-                                            } else if (!isCorrectOption && isSelected) {
-                                                buttonClasses += ' bg-red-900/50 border-red-500'; // Błędna i wybrana
-                                            } else if (isCorrectOption && !isSelected) {
-                                                buttonClasses += ' border-green-500'; // Poprawna, ale nie wybrana (po udzieleniu odpowiedzi)
-                                            } else {
-                                                buttonClasses += ' bg-slate-800 border-slate-600 opacity-50'; // Inne opcje po udzieleniu odpowiedzi
-                                            }
-                                        } else {
-                                            buttonClasses += ' bg-slate-800 hover:bg-slate-700 border-slate-600'; // Domyślny styl przed odpowiedzią
-                                        }
-
+                                        const isCorrect = optIndex === q.correct;
+                                        const isAnsweredCorrectly = quizState.correctAnswers[qIndex];
+                                        const isWrongAttempt = quizState.wrongAttempts.has(`${qIndex}-${optIndex}`);
+                                        
                                         return (
                                             <Button
                                                 key={optIndex}
                                                 onClick={() => checkAnswer(qIndex, optIndex)}
-                                                className={buttonClasses}
-                                                disabled={isQuestionAnswered} // Wyłącz przycisk po udzieleniu odpowiedzi
+                                                className={`text-left px-4 py-3 rounded-lg border transition-all text-sm w-full justify-start relative
+                                                    ${isAnsweredCorrectly && isCorrect 
+                                                        ? 'bg-green-900/50 border-green-500 text-green-100' 
+                                                        : ''}
+                                                    ${isWrongAttempt && !isAnsweredCorrectly 
+                                                        ? 'bg-red-900/20 border-red-900/50 text-red-200 animate-shake' 
+                                                        : ''}
+                                                    ${!isAnsweredCorrectly && !isWrongAttempt 
+                                                        ? 'bg-slate-800 hover:bg-slate-700 border-slate-600 text-slate-300' 
+                                                        : ''}
+                                                    ${isAnsweredCorrectly && !isCorrect 
+                                                        ? 'opacity-50 cursor-not-allowed bg-slate-800/50 border-slate-700 text-slate-500' 
+                                                        : ''}
+                                                `}
+                                                disabled={isAnsweredCorrectly || isWrongAttempt}
                                             >
                                                 {opt}
+                                                {isWrongAttempt && (
+                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-red-400">✗</span>
+                                                )}
+                                                {isAnsweredCorrectly && isCorrect && (
+                                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-400">✓</span>
+                                                )}
                                             </Button>
                                         );
                                     })}
                                 </div>
-                                {quizState.selectedOption[qIndex] !== null && (
-                                    <p className={`mt-2 text-sm font-semibold ${quizState.correctAnswers[qIndex] ? 'text-green-400' : 'text-red-400'}`}>
-                                        {quizState.correctAnswers[qIndex] ? '✅ Dobra odpowiedź!' : '❌ Niestety, to nieprawidłowa odpowiedź. Spróbuj ponownie.'}
+                                {quizState.correctAnswers[qIndex] && (
+                                    <p className="mt-3 ml-11 text-sm font-semibold text-green-400">
+                                        ✅ Świetnie! To poprawna odpowiedź.
                                     </p>
                                 )}
                             </div>
                         ))}
+                        
                         <div className="mt-8 text-center">
-                            <Button onClick={finishQuiz} className="bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-3 rounded-full font-bold transition shadow-lg shadow-indigo-500/20">Zakończ Quiz</Button>
+                            <Button 
+                                onClick={finishQuiz} 
+                                disabled={!allQuestionsCorrect}
+                                className={`px-8 py-3 rounded-full font-bold transition-all shadow-lg ${
+                                    allQuestionsCorrect 
+                                        ? 'bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white shadow-indigo-500/20 animate-pulse' 
+                                        : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                }`}>
+                                {allQuestionsCorrect 
+                                    ? '🎉 Zakończ Kurs - Wszystko poprawne!' 
+                                    : `Znajdź wszystkie poprawne odpowiedzi (${correctCount}/${quizData.length})`}
+                            </Button>
                         </div>
                     </div>
                     
-                    <div ref={quizResultRef} className={`bg-slate-900 border border-green-900 rounded-2xl p-8 ${quizState.showResults ? '' : 'hidden'}`}>
-                        <div className="text-6xl mb-4">🎉</div>
-                        <h3 className="text-2xl font-bold text-white mb-2">Gratulacje!</h3>
-                        <p className="text-slate-400 mb-6">Ukończyłeś szybki kurs AI. Twój wynik: <span id="score-display" className="text-indigo-400 font-bold text-xl">{correctCount}/{quizData.length}</span></p>
-                        <Button onClick={initQuiz} className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-2 rounded-lg transition">
-                            Powtórz Quiz
-                        </Button>
+                    {/* Results Screen */}
+                    <div ref={quizResultRef} className={`bg-gradient-to-br from-slate-900 to-slate-800 border border-green-500/50 rounded-2xl p-8 ${quizState.showResults && !certificateData ? '' : 'hidden'}`}>
+                        {!showCertificateForm ? (
+                            <>
+                                <div className="text-6xl mb-4">🏆</div>
+                                <h3 className="text-3xl font-bold text-white mb-4">Gratulacje!</h3>
+                                <p className="text-lg text-slate-300 mb-6">
+                                    Ukończyłeś kurs z wynikiem <span className="text-2xl font-bold text-green-400">100%</span>
+                                </p>
+                                <p className="text-slate-400 mb-8">
+                                    Świetna robota! Opanowałeś podstawy AI. Możesz teraz wygenerować swój certyfikat ukończenia kursu.
+                                </p>
+                                <div className="flex justify-center gap-4">
+                                    <Button 
+                                        onClick={() => setShowCertificateForm(true)} 
+                                        className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white px-6 py-3 rounded-lg transition flex items-center gap-2"
+                                    >
+                                        <Award className="w-5 h-5" /> Wygeneruj Certyfikat
+                                    </Button>
+                                    <Button onClick={() => scrollToSection('symulator')} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg transition">
+                                        🤖 Wróć do Symulatora
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h3 className="text-2xl font-bold text-white mb-6">Wpisz swoje dane do certyfikatu</h3>
+                                <div className="max-w-md mx-auto">
+                                    <Input
+                                        type="text"
+                                        placeholder="Imię i Nazwisko"
+                                        className="w-full bg-slate-800 border border-slate-600 rounded-lg px-4 py-3 text-white mb-4 focus:outline-none focus:border-indigo-500 transition"
+                                        value={userName}
+                                        onChange={(e) => setUserName(e.target.value)}
+                                        onKeyPress={(e) => e.key === 'Enter' && generateCertificate()}
+                                    />
+                                    <div className="flex gap-3">
+                                        <Button 
+                                            onClick={generateCertificate}
+                                            disabled={!userName.trim()}
+                                            className={`flex-1 px-6 py-3 rounded-lg transition ${
+                                                userName.trim() 
+                                                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white' 
+                                                    : 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                            }`}
+                                        >
+                                            Generuj Certyfikat
+                                        </Button>
+                                        <Button 
+                                            onClick={() => setShowCertificateForm(false)}
+                                            className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg transition"
+                                        >
+                                            Anuluj
+                                        </Button>
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
+
+                    {/* Certificate Display */}
+                    {certificateData && (
+                        <div ref={certificateRef} className="bg-gradient-to-br from-slate-900 via-indigo-900/20 to-slate-900 border border-indigo-500/30 rounded-2xl p-8">
+                            <div className="bg-white rounded-xl p-8 md:p-12 text-slate-900 relative overflow-hidden">
+                                {/* Decorative elements */}
+                                <div className="absolute top-0 left-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full -translate-x-16 -translate-y-16"></div>
+                                <div className="absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full translate-x-16 translate-y-16"></div>
+                                
+                                <div className="relative">
+                                    <div className="text-center mb-8">
+                                        <div className="flex justify-center mb-4">
+                                            <div className="w-20 h-20 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
+                                                <Award className="w-10 h-10 text-white" />
+                                            </div>
+                                        </div>
+                                        <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600">
+                                            Certyfikat Ukończenia
+                                        </h2>
+                                    </div>
+                                    
+                                    <div className="text-center space-y-4">
+                                        <p className="text-slate-600">Zaświadcza się, że</p>
+                                        <p className="text-4xl font-bold text-slate-900 py-2">
+                                            {certificateData.name}
+                                        </p>
+                                        <p className="text-slate-600">ukończył(a) z wyróżnieniem</p>
+                                        <p className="text-2xl font-semibold text-indigo-600">
+                                            Kurs Podstaw Sztucznej Inteligencji
+                                        </p>
+                                        <div className="pt-8 space-y-2">
+                                            <p className="text-sm text-slate-500">Akademia AI</p>
+                                            <p className="text-sm text-slate-500">{certificateData.date}</p>
+                                            <p className="text-xs text-slate-400">ID: {certificateData.certificateId}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="mt-6 flex justify-center gap-4">
+                                <Button 
+                                    onClick={downloadCertificate}
+                                    className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white px-6 py-3 rounded-lg transition flex items-center gap-2"
+                                >
+                                    <Download className="w-5 h-5" /> Pobierz Certyfikat
+                                </Button>
+                                <Button onClick={initQuiz} className="bg-slate-700 hover:bg-slate-600 text-white px-6 py-3 rounded-lg transition">
+                                    🔄 Rozpocznij Ponownie
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </section>
 
@@ -397,6 +618,17 @@ const ShortAICourse = () => {
             <footer className="py-8 text-center text-slate-500 text-sm border-t border-slate-800">
                 <p>&copy; 2025 Akademia AI by Paweł Malec. Stworzone w celach edukacyjnych.</p>
             </footer>
+
+            <style jsx>{`
+                @keyframes shake {
+                    0%, 100% { transform: translateX(0); }
+                    25% { transform: translateX(-4px); }
+                    75% { transform: translateX(4px); }
+                }
+                .animate-shake {
+                    animation: shake 0.3s ease-in-out;
+                }
+            `}</style>
         </div>
     );
 };
