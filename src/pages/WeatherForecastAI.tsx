@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, Clock, Sun, Cloud, CloudRain, Moon, CloudMoon, Zap, Snowflake, Mist, Question, LocateFixed } from 'lucide-react';
+import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, Clock, Sun, Cloud, CloudRain, Moon, CloudMoon, Zap, Snowflake, CloudFog, HelpCircle, LocateFixed } from 'lucide-react';
 
 const API_KEY = 'bd5e378503939ddaee76f12ad7a97608'; // Darmowy klucz API OpenWeatherMap
 const API_BASE = 'https://api.openweathermap.org/data/2.5';
@@ -19,9 +19,9 @@ const getWeatherIconComponent = (iconCode: string) => {
         '10d': CloudRain, '10n': CloudRain,
         '11d': Zap, '11n': Zap,
         '13d': Snowflake, '13n': Snowflake,
-        '50d': Mist, '50n': Mist
+        '50d': CloudFog, '50n': CloudFog
     };
-    return iconMap[iconCode] || Question;
+    return iconMap[iconCode] || HelpCircle;
 };
 
 const WeatherForecastAI = () => {

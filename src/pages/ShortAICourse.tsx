@@ -618,17 +618,6 @@ const ShortAICourse = () => {
             <footer className="py-8 text-center text-slate-500 text-sm border-t border-slate-800">
                 <p>&copy; 2025 Akademia AI by Paweł Malec. Stworzone w celach edukacyjnych.</p>
             </footer>
-
-            <style jsx>{`
-                @keyframes shake {
-                    0%, 100% { transform: translateX(0); }
-                    25% { transform: translateX(-4px); }
-                    75% { transform: translateX(4px); }
-                }
-                .animate-shake {
-                    animation: shake 0.3s ease-in-out;
-                }
-            `}</style>
         </div>
     );
 };
