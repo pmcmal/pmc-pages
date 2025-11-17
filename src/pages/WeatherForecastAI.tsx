@@ -7,8 +7,8 @@ import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart,
 import { toast } from "sonner";
 
 // Stałe API
-// Używamy klucza z .env, ale dodajemy fallback do symulacji, jeśli klucz jest pusty.
-const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+// UWAGA: Klucz API został wklejony bezpośrednio do kodu, zgodnie z życzeniem użytkownika.
+const API_KEY = '5f472b7acba333cd8a035ea85a0d4d4c';
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 // Mapowanie ikon OpenWeatherMap na Lucide React
@@ -113,7 +113,7 @@ const WeatherForecastAI = () => {
 
     useEffect(() => {
         if (!API_KEY) {
-            setError("Brak klucza API (VITE_OPENWEATHER_API_KEY). Używam symulowanych danych pogodowych.");
+            setError("Brak klucza API. Używam symulowanych danych pogodowych.");
             toast.warning("Brak klucza API. Używam symulowanych danych.");
             setIsApiAvailable(false);
         }
@@ -257,7 +257,6 @@ const WeatherForecastAI = () => {
             recommendation = 'Doskonała jakość powietrza - idealna na aktywności na świeżym powietrzu.';
         }
 
-        // Usunięto aqiInfo.border, ponieważ nie istnieje w typie aqiMap
         return (
             <div className={`bg-white/10 rounded-xl p-4 col-span-2 md:col-span-1 border-l-4 border-purple-500`}>
                 <AirVent className="text-2xl text-cyan-300 mb-2" size={24} />
