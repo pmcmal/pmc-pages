@@ -3,37 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, Clock, Sun, Cloud, CloudRain, Moon, CloudMoon, Zap, Snowflake, CloudFog, HelpCircle, LocateFixed } from 'lucide-react';
+import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, Clock, Sun, Cloud, CloudRain, Moon, CloudMoon, Zap, Snowflake, CloudFog, HelpCircle, LocateFixed, AirVent } from 'lucide-react';
 import { toast } from "sonner";
 
-// MOCK DATA - Używamy danych symulowanych, aby ominąć problem z zablokowanym kluczem API
-const MOCK_WEATHER_DATA = {
-    name: "Warszawa (Symulacja)",
-    sys: { country: "PL" },
-    main: {
-        temp: 18,
-        feels_like: 17,
-        humidity: 65,
-        pressure: 1012,
-    },
-    weather: [{ description: "umiarkowane zachmurzenie", icon: "04d" }],
-    wind: { speed: 4.5 },
-    coord: { lat: 52.2298, lon: 21.0118 }
-};
-
-const MOCK_FORECAST_DATA = {
-    list: [
-        // Mock data for 5 days (3-hour intervals)
-        { dt: Date.now() / 1000 + 86400 * 1, main: { temp: 15, humidity: 70 }, weather: [{ icon: "02d", description: "lekkie zachmurzenie" }] },
-        { dt: Date.now() / 1000 + 86400 * 1 + 3600 * 6, main: { temp: 20, humidity: 60 }, weather: [{ icon: "01d", description: "słonecznie" }] },
-        { dt: Date.now() / 1000 + 86400 * 2, main: { temp: 12, humidity: 80 }, weather: [{ icon: "10d", description: "deszcz" }] },
-        { dt: Date.now() / 1000 + 86400 * 2 + 3600 * 6, main: { temp: 14, humidity: 75 }, weather: [{ icon: "10d", description: "deszcz" }] },
-        { dt: Date.now() / 1000 + 86400 * 3, main: { temp: 22, humidity: 55 }, weather: [{ icon: "01d", description: "słonecznie" }] },
-        { dt: Date.now() / 1000 + 86400 * 3 + 3600 * 6, main: { temp: 25, humidity: 50 }, weather: [{ icon: "01d", description: "słonecznie" }] },
-        { dt: Date.now() / 1000 + 86400 * 4, main: { temp: 10, humidity: 90 }, weather: [{ icon: "50d", description: "mgła" }] },
-        { dt: Date.now() / 1000 + 86400 * 5, main: { temp: 8, humidity: 85 }, weather: [{ icon: "13d", description: "śnieg" }] },
-    ]
-};
+// Stałe API
+const API_KEY = import.meta.env.VITE_OPENWEATHER_API_KEY;
+const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 // Konwersja ikon OpenWeatherMap na Lucide React
 const getWeatherIconComponent = (iconCode: string) => {
@@ -51,10 +26,20 @@ const getWeatherIconComponent = (iconCode: string) => {
     return iconMap[iconCode] || HelpCircle;
 };
 
+// Mapowanie AQI (Air Quality Index)
+const aqiMap: { [key: number]: { label: string, color: string } } = {
+    1: { label: "Dobra", color: "text-green-500" },
+    2: { label: "Umiarkowana", color: "text-yellow-500" },
+    3: { label: "Niezdrowa dla wrażliwych", color: "text-orange-500" },
+    4: { label: "Niezdrowa", color: "text-red-500" },
+    5: { label: "Bardzo niezdrowa", color: "text-purple-500" },
+};
+
 const WeatherForecastAI = () => {
     const [cityInput, setCityInput] = useState<string>('');
     const [weatherData, setWeatherData] = useState<any>(null);
     const [forecastData, setForecastData] = useState<any>(null);
+    const [airQualityData, setAirQualityData] = useState<any>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [currentTime, setCurrentTime] = useState<string>('');
@@ -66,29 +51,79 @@ const WeatherForecastAI = () => {
         return () => clearInterval(intervalId);
     }, []);
 
-    // Funkcja symulująca pobieranie danych
-    const fetchData = async (isLocation: boolean = false) => {
+    useEffect(() => {
+        if (!API_KEY) {
+            setError("Brak klucza API. Proszę ustawić zmienną środowiskową VITE_OPENWEATHER_API_KEY.");
+            toast.error("Brak klucza API. Funkcjonalność pogody jest zablokowana.");
+        }
+    }, []);
+
+    const fetchAirQuality = async (lat: number, lon: number) => {
+        if (!API_KEY) return;
+        try {
+            const response = await fetch(`${BASE_URL}/air_pollution?lat=${lat}&lon=${lon}&appid=${API_KEY}`);
+            if (!response.ok) {
+                throw new Error("Błąd pobierania jakości powietrza.");
+            }
+            const data = await response.json();
+            setAirQualityData(data.list[0]);
+        } catch (err) {
+            console.error("Error fetching air quality:", err);
+            setAirQualityData(null);
+        }
+    };
+
+    const fetchData = async (lat?: number, lon?: number, city?: string) => {
+        if (!API_KEY) {
+            setError("Brak klucza API. Proszę ustawić zmienną środowiskową VITE_OPENWEATHER_API_KEY.");
+            return;
+        }
+
         setLoading(true);
         setError('');
         setWeatherData(null);
         setForecastData(null);
-
-        // Symulacja opóźnienia API
-        await new Promise(resolve => setTimeout(resolve, 1500));
+        setAirQualityData(null);
 
         try {
-            if (!isLocation && !cityInput.trim()) {
-                throw new Error('Proszę wpisać nazwę miejscowości');
+            let currentLat = lat;
+            let currentLon = lon;
+
+            if (city) {
+                // 1. Pobierz koordynaty dla miasta
+                const geoResponse = await fetch(`${BASE_URL}/weather?q=${city}&appid=${API_KEY}&units=metric&lang=pl`);
+                if (!geoResponse.ok) {
+                    throw new Error(`Nie znaleziono miejscowości: ${city}`);
+                }
+                const geoData = await geoResponse.json();
+                currentLat = geoData.coord.lat;
+                currentLon = geoData.coord.lon;
+                setWeatherData(geoData); // Używamy tego samego endpointu do pobrania aktualnej pogody
+            } else if (lat === undefined || lon === undefined) {
+                throw new Error('Proszę wpisać nazwę miejscowości lub użyć geolokalizacji.');
             }
-            
-            // Użycie mock danych
-            setWeatherData(MOCK_WEATHER_DATA);
-            setForecastData(MOCK_FORECAST_DATA);
-            toast.success(`Pobrano symulowaną prognozę dla ${MOCK_WEATHER_DATA.name}`);
+
+            if (currentLat !== undefined && currentLon !== undefined) {
+                // 2. Pobierz prognozę 5-dniową
+                const forecastResponse = await fetch(`${BASE_URL}/forecast?lat=${currentLat}&lon=${currentLon}&appid=${API_KEY}&units=metric&lang=pl`);
+                if (!forecastResponse.ok) {
+                    throw new Error("Błąd pobierania prognozy.");
+                }
+                const forecastData = await forecastResponse.json();
+                setForecastData(forecastData);
+
+                // 3. Pobierz jakość powietrza
+                await fetchAirQuality(currentLat, currentLon);
+            }
+
+            toast.success(`Pobrano prognozę dla ${city || 'Twojej lokalizacji'}`);
 
         } catch (err: any) {
             console.error("Error fetching weather:", err);
             setError(err.message || 'Wystąpił błąd podczas pobierania danych pogodowych.');
+            setWeatherData(null);
+            setForecastData(null);
+            setAirQualityData(null);
         } finally {
             setLoading(false);
         }
@@ -97,17 +132,48 @@ const WeatherForecastAI = () => {
     const getWeatherByCity = () => {
         if (!cityInput.trim()) {
             setError('Proszę wpisać nazwę miejscowości');
-            setWeatherData(null);
-            setForecastData(null);
             return;
         }
-        fetchData(false);
+        fetchData(undefined, undefined, cityInput.trim());
     };
 
     const getWeatherByLocation = () => {
-        // W prawdziwej aplikacji użyłoby to geolokalizacji, ale tutaj symulujemy
-        toast.info("Symulacja geolokalizacji. Wyświetlam dane dla Warszawy.");
-        fetchData(true);
+        if (!API_KEY) {
+            setError("Brak klucza API. Proszę ustawić zmienną środowiskową VITE_OPENWEATHER_API_KEY.");
+            return;
+        }
+        
+        if (navigator.geolocation) {
+            setLoading(true);
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    fetchData(position.coords.latitude, position.coords.longitude);
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    setError("Nie udało się pobrać Twojej lokalizacji. Upewnij się, że masz włączoną geolokalizację.");
+                    setLoading(false);
+                }
+            );
+        } else {
+            setError("Twoja przeglądarka nie obsługuje geolokalizacji.");
+        }
+    };
+
+    const renderAirQuality = () => {
+        if (!airQualityData) return null;
+
+        const aqi = airQualityData.main.aqi;
+        const aqiInfo = aqiMap[aqi] || { label: "Nieznana", color: "text-gray-500" };
+
+        return (
+            <div className="bg-white/10 rounded-xl p-4 col-span-2 md:col-span-1">
+                <AirVent className="text-2xl text-cyan-300 mb-2" size={24} />
+                <p className="text-purple-200 text-sm">Jakość Powietrza (AQI)</p>
+                <p className={`text-2xl font-bold ${aqiInfo.color}`}>{aqiInfo.label}</p>
+                <p className="text-xs text-purple-300 mt-1">PM2.5: {airQualityData.components.pm2_5.toFixed(1)} µg/m³</p>
+            </div>
+        );
     };
 
     const renderAnalysis = () => {
@@ -165,7 +231,7 @@ const WeatherForecastAI = () => {
     };
 
     const renderForecast = () => {
-        if (!forecastData) return null;
+        if (!forecastData || !forecastData.list) return null;
         const dailyForecasts: { [key: string]: { temps: number[], humidity: number, icon: string, description: string } } = {};
         const days = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
         
@@ -294,7 +360,7 @@ const WeatherForecastAI = () => {
                         <CloudSun className="float-animation" size={48} />
                         Inteligentna Pogoda
                     </h1>
-                    <p className="text-xl text-purple-100">Analiza i prognozy pogodowe dla każdej miejscowości (DANE SYMULOWANE)</p>
+                    <p className="text-xl text-purple-100">Analiza i prognozy pogodowe dla każdej miejscowości</p>
                 </header>
 
                 {/* Search Section */}
@@ -310,11 +376,13 @@ const WeatherForecastAI = () => {
                                     value={cityInput}
                                     onChange={(e) => setCityInput(e.target.value)}
                                     onKeyPress={(e) => e.key === 'Enter' && getWeatherByCity()}
+                                    disabled={!API_KEY}
                                 />
                             </div>
                             <Button
                                 onClick={getWeatherByCity}
                                 className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                                disabled={!API_KEY || loading}
                             >
                                 <Search className="mr-2 inline-block" size={20} />
                                 Sprawdź pogodę
@@ -322,6 +390,7 @@ const WeatherForecastAI = () => {
                             <Button
                                 onClick={getWeatherByLocation}
                                 className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                                disabled={!API_KEY || loading}
                             >
                                 <LocateFixed className="mr-2 inline-block" size={20} />
                                 Moja lokalizacja
@@ -384,6 +453,7 @@ const WeatherForecastAI = () => {
                                         <p className="text-purple-200 text-sm">Ciśnienie</p>
                                         <p className="text-2xl font-bold text-white">{weatherData.main.pressure} hPa</p>
                                     </div>
+                                    {renderAirQuality()}
                                 </div>
                             </div>
                         </div>
