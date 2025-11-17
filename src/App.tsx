@@ -14,7 +14,7 @@ import ElectronicProjectGenerator from "./pages/ElectronicProjectGenerator";
 import ShortAICourse from "./pages/ShortAICourse";
 import WeatherForecastAI from "./pages/WeatherForecastAI";
 import SpaceInvaders from "./pages/SpaceInvaders";
-// Usunięto import OnlineRadio from "./pages/OnlineRadio";
+import PortfolioStore from "./pages/PortfolioStore";
 
 const queryClient = new QueryClient();
 
@@ -35,7 +35,7 @@ const App = () => (
             <Route path="/short-ai-course" element={<ShortAICourse />} />
             <Route path="/weather-forecast-ai" element={<WeatherForecastAI />} />
             <Route path="/space-invaders" element={<SpaceInvaders />} />
-            {/* Usunięto trasę <Route path="/online-radio" element={<OnlineRadio />} /> */}
+            <Route path="/portfolio-store" element={<PortfolioStore />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

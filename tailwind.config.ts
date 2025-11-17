@@ -19,6 +19,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        mono: ['"Courier Prime"', 'monospace'], // Dodanie Courier Prime jako domyślnej czcionki mono
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",

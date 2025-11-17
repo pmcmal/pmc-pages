@@ -4,9 +4,36 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, Clock, Sun, Cloud, CloudRain, Moon, CloudMoon, Zap, Snowflake, CloudFog, HelpCircle, LocateFixed } from 'lucide-react';
+import { toast } from "sonner";
 
-const API_KEY = 'bd5e378503939ddaee76f12ad7a97608'; // Darmowy klucz API OpenWeatherMap
-const API_BASE = 'https://api.openweathermap.org/data/2.5';
+// MOCK DATA - Używamy danych symulowanych, aby ominąć problem z zablokowanym kluczem API
+const MOCK_WEATHER_DATA = {
+    name: "Warszawa (Symulacja)",
+    sys: { country: "PL" },
+    main: {
+        temp: 18,
+        feels_like: 17,
+        humidity: 65,
+        pressure: 1012,
+    },
+    weather: [{ description: "umiarkowane zachmurzenie", icon: "04d" }],
+    wind: { speed: 4.5 },
+    coord: { lat: 52.2298, lon: 21.0118 }
+};
+
+const MOCK_FORECAST_DATA = {
+    list: [
+        // Mock data for 5 days (3-hour intervals)
+        { dt: Date.now() / 1000 + 86400 * 1, main: { temp: 15, humidity: 70 }, weather: [{ icon: "02d", description: "lekkie zachmurzenie" }] },
+        { dt: Date.now() / 1000 + 86400 * 1 + 3600 * 6, main: { temp: 20, humidity: 60 }, weather: [{ icon: "01d", description: "słonecznie" }] },
+        { dt: Date.now() / 1000 + 86400 * 2, main: { temp: 12, humidity: 80 }, weather: [{ icon: "10d", description: "deszcz" }] },
+        { dt: Date.now() / 1000 + 86400 * 2 + 3600 * 6, main: { temp: 14, humidity: 75 }, weather: [{ icon: "10d", description: "deszcz" }] },
+        { dt: Date.now() / 1000 + 86400 * 3, main: { temp: 22, humidity: 55 }, weather: [{ icon: "01d", description: "słonecznie" }] },
+        { dt: Date.now() / 1000 + 86400 * 3 + 3600 * 6, main: { temp: 25, humidity: 50 }, weather: [{ icon: "01d", description: "słonecznie" }] },
+        { dt: Date.now() / 1000 + 86400 * 4, main: { temp: 10, humidity: 90 }, weather: [{ icon: "50d", description: "mgła" }] },
+        { dt: Date.now() / 1000 + 86400 * 5, main: { temp: 8, humidity: 85 }, weather: [{ icon: "13d", description: "śnieg" }] },
+    ]
+};
 
 // Konwersja ikon OpenWeatherMap na Lucide React
 const getWeatherIconComponent = (iconCode: string) => {
@@ -39,26 +66,26 @@ const WeatherForecastAI = () => {
         return () => clearInterval(intervalId);
     }, []);
 
-    const fetchData = async (url: string) => {
+    // Funkcja symulująca pobieranie danych
+    const fetchData = async (isLocation: boolean = false) => {
         setLoading(true);
         setError('');
         setWeatherData(null);
         setForecastData(null);
 
+        // Symulacja opóźnienia API
+        await new Promise(resolve => setTimeout(resolve, 1500));
+
         try {
-            const currentResponse = await fetch(`${url}&units=metric&lang=pl`);
-            if (!currentResponse.ok) {
-                const errorData = await currentResponse.json();
-                throw new Error(errorData.message || 'Nie znaleziono miejscowości lub wystąpił błąd.');
+            if (!isLocation && !cityInput.trim()) {
+                throw new Error('Proszę wpisać nazwę miejscowości');
             }
-            const currentData = await currentResponse.json();
+            
+            // Użycie mock danych
+            setWeatherData(MOCK_WEATHER_DATA);
+            setForecastData(MOCK_FORECAST_DATA);
+            toast.success(`Pobrano symulowaną prognozę dla ${MOCK_WEATHER_DATA.name}`);
 
-            const forecastUrl = url.includes('q=') ? `${API_BASE}/forecast?q=${cityInput}&appid=${API_KEY}` : `${API_BASE}/forecast?lat=${currentData.coord.lat}&lon=${currentData.coord.lon}&appid=${API_KEY}`;
-            const forecastResponse = await fetch(`${forecastUrl}&units=metric&lang=pl`);
-            const forecastData = await forecastResponse.json();
-
-            setWeatherData(currentData);
-            setForecastData(forecastData);
         } catch (err: any) {
             console.error("Error fetching weather:", err);
             setError(err.message || 'Wystąpił błąd podczas pobierania danych pogodowych.');
@@ -74,31 +101,13 @@ const WeatherForecastAI = () => {
             setForecastData(null);
             return;
         }
-        fetchData(`${API_BASE}/weather?q=${cityInput}&appid=${API_KEY}`);
+        fetchData(false);
     };
 
     const getWeatherByLocation = () => {
-        if (!navigator.geolocation) {
-            setError('Twoja przeglądarka nie wspiera geolokalizacji');
-            return;
-        }
-
-        setLoading(true);
-        setError('');
-        setWeatherData(null);
-        setForecastData(null);
-
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const { latitude, longitude } = position.coords;
-                fetchData(`${API_BASE}/weather?lat=${latitude}&lon=${longitude}&appid=${API_KEY}`);
-            },
-            (err) => {
-                console.error("Geolocation error:", err);
-                setError('Nie udało się pobrać lokalizacji. Sprawdź uprawnienia w przeglądarce.');
-                setLoading(false);
-            }
-        );
+        // W prawdziwej aplikacji użyłoby to geolokalizacji, ale tutaj symulujemy
+        toast.info("Symulacja geolokalizacji. Wyświetlam dane dla Warszawy.");
+        fetchData(true);
     };
 
     const renderAnalysis = () => {
@@ -164,6 +173,7 @@ const WeatherForecastAI = () => {
             const date = new Date(item.dt * 1000);
             const dayName = days[date.getDay()];
             
+            // Używamy tylko jednej prognozy na dzień (np. południe)
             if (!dailyForecasts[dayName]) {
                 dailyForecasts[dayName] = {
                     temps: [],
@@ -179,9 +189,9 @@ const WeatherForecastAI = () => {
         let count = 0;
         const today = new Date().getDay();
 
-        for (const dayIndex in days) {
+        for (let i = 0; i < 7; i++) {
+            const dayIndex = (today + i) % 7;
             const dayName = days[dayIndex];
-            if (parseInt(dayIndex) === today) continue; // Skip today
 
             if (dailyForecasts[dayName] && count < 5) {
                 const data = dailyForecasts[dayName];
@@ -192,7 +202,7 @@ const WeatherForecastAI = () => {
 
                 forecastCards.push(
                     <div key={dayName} className="bg-white/10 rounded-xl p-4 text-center hover:bg-white/20 transition-colors">
-                        <p className="text-purple-200 font-semibold mb-2">{dayName}</p>
+                        <p className="text-purple-200 font-semibold mb-2">{i === 0 ? 'Dziś' : dayName}</p>
                         <div className="text-3xl mb-2">
                             <IconComponent className="text-yellow-300 mx-auto" size={32} />
                         </div>
@@ -211,7 +221,7 @@ const WeatherForecastAI = () => {
                     <CalendarDays className="inline-block mr-2" size={24} />
                     Prognoza 5-dniowa
                 </h3>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">{forecastCards}</div>
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">{forecastCards}</div>
             </div>
         );
     };
@@ -284,7 +294,7 @@ const WeatherForecastAI = () => {
                         <CloudSun className="float-animation" size={48} />
                         Inteligentna Pogoda
                     </h1>
-                    <p className="text-xl text-purple-100">Analiza i prognozy pogodowe dla każdej miejscowości</p>
+                    <p className="text-xl text-purple-100">Analiza i prognozy pogodowe dla każdej miejscowości (DANE SYMULOWANE)</p>
                 </header>
 
                 {/* Search Section */}

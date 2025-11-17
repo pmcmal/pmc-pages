@@ -107,6 +107,9 @@
 
 /* Custom styles for the AI Course page */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+/* Import Courier Prime for the store page */
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
 
 .typing-cursor::after {
     content: '|';
@@ -278,4 +281,26 @@ body {
   background: #020617;
   border: 2px solid #38bdf8;
   box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.35);
+}
+
+/* Custom styles for Portfolio Store */
+.scanline {
+    background: linear-gradient(to bottom, rgba(255,255,255,0), rgba(255,255,255,0) 50%, rgba(0,0,0,0.1) 50%, rgba(0,0,0,0.1));
+    background-size: 100% 4px;
+    position: fixed;
+    pointer-events: none;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { text-shadow: 0 0 5px #22c55e; }
+    50% { text-shadow: 0 0 15px #22c55e, 0 0 5px #fff; }
+}
+
+.glow-text-store {
+    animation: pulse-glow 3s infinite;
 }
