@@ -1,6 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://mmmikthvzfvttfmybxgz.supabase.co';
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1tbWlrdGh2emZ2dHRmbXlieGd6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkxNzA2MjEsImV4cCI6MjA3NDc0NjYyMX0.o1DTi7ABl1qiBH-tUDPwsDrCTOd_P3kGRH5qlUEkwqI';
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn(
+    'Brak VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY w zmiennych środowiskowych. ' +
+    'Generatory AI oparte na Supabase Edge Functions nie będą działać, dopóki nie skonfigurujesz .env.local.'
+  );
+}
+
+// createClient rzuca błąd (i wywala całą aplikację przy starcie, bo ten moduł
+// jest importowany przez wszystkie strony generatorów) jeśli URL nie jest
+// poprawnym adresem — placeholder trzyma appkę żywą, wywołania i tak
+// nieszkodliwie zawiodą, jeśli brakuje realnej konfiguracji.
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key'
+);

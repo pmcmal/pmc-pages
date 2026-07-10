@@ -3,9 +3,28 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Rocket } from 'lucide-react';
+import { SiteHomeButton } from '@/components/SiteHomeButton';
 
 const CANVAS_WIDTH = 800;
 const CANVAS_HEIGHT = 600;
+
+interface Bullet {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    speed: number;
+}
+
+interface Invader {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    alive: boolean;
+    type: 'strong' | 'normal';
+    points: number;
+}
 
 const SpaceInvaders = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -28,11 +47,11 @@ const SpaceInvaders = () => {
     });
 
     // Bullets state
-    const bulletsRef = useRef<any[]>([]);
-    const enemyBulletsRef = useRef<any[]>([]);
+    const bulletsRef = useRef<Bullet[]>([]);
+    const enemyBulletsRef = useRef<Bullet[]>([]);
 
     // Invaders state
-    const invadersRef = useRef<any[]>([]);
+    const invadersRef = useRef<Invader[]>([]);
     const invaderRows = 5;
     const invaderCols = 11;
     const invaderWidth = 30;
@@ -77,7 +96,7 @@ const SpaceInvaders = () => {
         ctx.fillRect(player.x + player.width / 2 - 2, player.y - 5, 4, 8);
     }, []);
 
-    const drawInvader = useCallback((ctx: CanvasRenderingContext2D, invader: any) => {
+    const drawInvader = useCallback((ctx: CanvasRenderingContext2D, invader: Invader) => {
         if (!invader.alive) return;
         
         ctx.fillStyle = invader.type === 'strong' ? '#ff00ff' : '#00ffff';
@@ -231,16 +250,16 @@ const SpaceInvaders = () => {
                 bullet.x + bullet.width > player.x &&
                 bullet.y < player.y + player.height &&
                 bullet.y + bullet.height > player.y) {
-                
+
                 enemyBulletsRef.current.splice(i, 1);
-                setLives(prev => prev - 1);
-                
-                if (lives - 1 <= 0) {
-                    setIsGameOver(true);
-                }
+                setLives(prev => {
+                    const next = prev - 1;
+                    if (next <= 0) setIsGameOver(true);
+                    return next;
+                });
             }
         }
-        
+
         // Invaders vs player
         invadersRef.current.forEach(invader => {
             if (!invader.alive) return;
@@ -248,7 +267,7 @@ const SpaceInvaders = () => {
                 setIsGameOver(true);
             }
         });
-    }, [lives]);
+    }, []);
 
     const checkVictory = useCallback(() => {
         const aliveInvaders = invadersRef.current.filter(i => i.alive);
@@ -344,6 +363,7 @@ const SpaceInvaders = () => {
 
     return (
         <div className="min-h-screen flex items-center justify-center p-4 space-invaders-bg">
+            <SiteHomeButton />
             <div className="text-center">
                 <h1 className="text-4xl font-bold text-green-400 mb-4 glow-text flex items-center justify-center gap-2">
                     <Rocket className="text-green-400" size={36} />

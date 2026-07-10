@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Brain, MessageSquareText, Image, ShieldHalf, Bot, User, BookOpen, Terminal, Send, Download, Award } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -234,10 +235,10 @@ const ShortAICourse = () => {
             {/* Navigation */}
             <nav className="fixed w-full z-50 bg-slate-900/80 backdrop-blur-md border-b border-slate-800">
                 <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-                    <div className="text-2xl font-bold flex items-center gap-2">
+                    <Link to="/" className="text-2xl font-bold flex items-center gap-2 hover:opacity-80 transition-opacity">
                         <Bot className="text-indigo-500" />
                         <span>Akademia<span className="text-indigo-500">AI</span></span>
-                    </div>
+                    </Link>
                     <div className="hidden md:flex gap-6 text-sm font-medium text-slate-300">
                         <button onClick={() => scrollToSection('start')} className="hover:text-white transition">Start</button>
                         <button onClick={() => scrollToSection('teoria')} className="hover:text-white transition">Lekcje</button>

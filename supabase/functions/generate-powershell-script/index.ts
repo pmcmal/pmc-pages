@@ -36,7 +36,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "openai/gpt-3.5-turbo", // You can choose a different model available on OpenRouter
+        model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
         messages: [
           {
             role: "system",

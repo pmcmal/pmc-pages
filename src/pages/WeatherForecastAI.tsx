@@ -5,10 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, LocateFixed, AirVent, Sun, Cloud, CloudRain, Snowflake, Zap, CloudFog, HelpCircle, ArrowUp, ArrowDown, CheckCircle, Info, TriangleAlert, Home, ShoppingCart, Utensils, HeartPulse, Car, Clock } from 'lucide-react';
 import { toast } from "sonner";
+import { SiteHomeButton } from '@/components/SiteHomeButton';
 
 // Stałe API
-// UWAGA: Klucz API został wklejony bezpośrednio do kodu, zgodnie z życzeniem użytkownika.
-const API_KEY = '5f472b7acba333cd8a035ea85a0d4d4c';
+const API_KEY = import.meta.env.VITE_OPENWEATHERMAP_API_KEY || '';
 const BASE_URL = "https://api.openweathermap.org/data/2.5";
 
 // Mapowanie ikon OpenWeatherMap na Lucide React
@@ -27,8 +27,52 @@ const getWeatherIconComponent = (iconCode: string) => {
     return iconMap[iconCode] || HelpCircle;
 };
 
+interface WeatherCondition {
+    main: string;
+    description: string;
+    icon: string;
+}
+
+interface CurrentWeatherData {
+    name: string;
+    sys: { country: string };
+    main: { temp: number; humidity: number; pressure: number; feels_like: number };
+    wind: { speed: number };
+    weather: WeatherCondition[];
+    coord: { lat: number; lon: number };
+}
+
+interface ForecastItem {
+    dt: number;
+    main: { temp: number; temp_max: number; temp_min: number; humidity: number };
+    weather: WeatherCondition[];
+    wind: { speed: number };
+}
+
+interface ForecastData {
+    list: ForecastItem[];
+}
+
+interface AirQualityInfo {
+    label: string;
+    color: string;
+}
+
+interface AirQualityData extends AirQualityInfo {
+    main: { aqi: number };
+    components: { pm2_5: number; pm10: number; no2: number };
+}
+
+interface DailyForecast {
+    date: Date;
+    temp: { day: number; night: number };
+    weather: { description: string; icon: string };
+    humidity: number;
+    wind: number;
+}
+
 // Mapowanie AQI (Air Quality Index)
-const aqiMap: { [key: number]: { label: string, color: string } } = {
+const aqiMap: { [key: number]: AirQualityInfo } = {
     1: { label: "Dobra", color: "text-green-500" },
     2: { label: "Umiarkowana", color: "text-yellow-500" },
     3: { label: "Niezdrowa dla wrażliwych", color: "text-orange-500" },
@@ -37,7 +81,7 @@ const aqiMap: { [key: number]: { label: string, color: string } } = {
 };
 
 // Symulowane dane AQI (dla fallbacku)
-const getSimulatedAirQuality = () => {
+const getSimulatedAirQuality = (): AirQualityData => {
     const aqi = Math.floor(Math.random() * 5) + 1;
     const info = aqiMap[aqi] || aqiMap[1];
     return {
@@ -52,7 +96,7 @@ const getSimulatedAirQuality = () => {
 };
 
 // Symulowane dane pogodowe (dla fallbacku)
-const getSimulatedWeatherData = (city: string) => {
+const getSimulatedWeatherData = (city: string): CurrentWeatherData => {
     const temp = 15 + Math.random() * 10 - 5;
     const humidity = 60 + Math.random() * 20;
     const pressure = 1013 + Math.random() * 20 - 10;
@@ -71,8 +115,8 @@ const getSimulatedWeatherData = (city: string) => {
     };
 };
 
-const getSimulatedForecastData = () => {
-    const list = [];
+const getSimulatedForecastData = (): ForecastData => {
+    const list: ForecastItem[] = [];
     const now = Date.now() / 1000;
     for (let i = 1; i <= 5; i++) {
         const dt = now + i * 24 * 3600;
@@ -96,9 +140,9 @@ const getSimulatedForecastData = () => {
 
 const WeatherForecastAI = () => {
     const [cityInput, setCityInput] = useState<string>('');
-    const [weatherData, setWeatherData] = useState<any>(null);
-    const [forecastData, setForecastData] = useState<any>(null);
-    const [airQualityData, setAirQualityData] = useState<any>(null);
+    const [weatherData, setWeatherData] = useState<CurrentWeatherData | null>(null);
+    const [forecastData, setForecastData] = useState<ForecastData | null>(null);
+    const [airQualityData, setAirQualityData] = useState<AirQualityData | null>(null);
     const [loading, setLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [currentTime, setCurrentTime] = useState<string>('');
@@ -146,7 +190,7 @@ const WeatherForecastAI = () => {
         try {
             let currentLat = lat;
             let currentLon = lon;
-            let currentWeatherData;
+            let currentWeatherData: CurrentWeatherData | undefined;
 
             if (city) {
                 if (isApiAvailable) {
@@ -154,7 +198,7 @@ const WeatherForecastAI = () => {
                     if (!geoResponse.ok) {
                         throw new Error(`Nie znaleziono miejscowości: ${city}`);
                     }
-                    currentWeatherData = await geoResponse.json();
+                    currentWeatherData = (await geoResponse.json()) as CurrentWeatherData;
                     currentLat = currentWeatherData.coord.lat;
                     currentLon = currentWeatherData.coord.lon;
                 } else {
@@ -169,7 +213,7 @@ const WeatherForecastAI = () => {
                     if (!weatherResponse.ok) {
                         throw new Error("Błąd pobierania aktualnej pogody.");
                     }
-                    currentWeatherData = await weatherResponse.json();
+                    currentWeatherData = (await weatherResponse.json()) as CurrentWeatherData;
                 } else {
                     currentWeatherData = getSimulatedWeatherData("Twoja Lokalizacja");
                 }
@@ -181,13 +225,13 @@ const WeatherForecastAI = () => {
             }
 
             // 2. Pobierz prognozę 5-dniową
-            let forecastResult;
+            let forecastResult: ForecastData;
             if (isApiAvailable) {
                 const forecastResponse = await fetch(`${BASE_URL}/forecast?lat=${currentLat}&lon=${currentLon}&appid=${API_KEY}&units=metric&lang=pl`);
                 if (!forecastResponse.ok) {
                     throw new Error("Błąd pobierania prognozy.");
                 }
-                forecastResult = await forecastResponse.json();
+                forecastResult = (await forecastResponse.json()) as ForecastData;
             } else {
                 forecastResult = getSimulatedForecastData();
             }
@@ -199,9 +243,9 @@ const WeatherForecastAI = () => {
 
             toast.success(`Pobrano prognozę dla ${currentWeatherData.name}`);
 
-        } catch (err: any) {
+        } catch (err) {
             console.error("Error fetching weather:", err);
-            setError(err.message || 'Wystąpił błąd podczas pobierania danych pogodowych.');
+            setError(err instanceof Error ? err.message : 'Wystąpił błąd podczas pobierania danych pogodowych.');
             setWeatherData(null);
             setForecastData(null);
             setAirQualityData(null);
@@ -426,13 +470,13 @@ const WeatherForecastAI = () => {
         );
     };
 
-    const processForecastData = (data: any) => {
+    const processForecastData = (data: ForecastData | null): DailyForecast[] => {
         if (!data || !data.list) return [];
-        
-        const dailyForecasts: any[] = [];
-        const forecastsByDay: { [key: string]: any[] } = {};
-        
-        data.list.forEach((item: any) => {
+
+        const dailyForecasts: DailyForecast[] = [];
+        const forecastsByDay: { [key: string]: ForecastItem[] } = {};
+
+        data.list.forEach((item: ForecastItem) => {
             const date = new Date(item.dt * 1000);
             const dateKey = date.toDateString();
             
@@ -522,6 +566,7 @@ const WeatherForecastAI = () => {
 
     return (
         <div className="min-h-screen gradient-bg">
+            <SiteHomeButton />
             <div className="container mx-auto px-4 py-8 max-w-6xl">
                 {/* Header */}
                 <header className="text-center mb-10">

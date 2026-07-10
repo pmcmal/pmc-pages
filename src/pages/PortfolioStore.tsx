@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, X } from 'lucide-react';
 import { toast } from "sonner";
@@ -194,16 +195,16 @@ const PortfolioStore = () => {
     };
 
     return (
-        <div className="bg-gray-950 text-green-500 min-h-screen flex flex-col selection:bg-green-900 selection:text-white font-mono">
+        <div className="bg-gray-950 text-green-500 min-h-screen flex flex-col selection:bg-green-900 selection:text-white font-courier">
             <div className="scanline"></div>
 
             {/* Navbar */}
             <nav className="border-b border-green-900 bg-black/80 backdrop-blur-md sticky top-0 z-50">
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-                    <div className="flex items-center gap-3">
+                    <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
                         <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                         <h1 className="text-2xl font-bold tracking-tighter text-white">PMC <span className="text-green-600 text-sm font-normal uppercase tracking-widest">Services</span></h1>
-                    </div>
+                    </Link>
                     <Button 
                         onClick={openCart}
                         className="group flex items-center gap-2 border border-green-800 hover:border-green-500 hover:bg-green-900/30 px-4 py-2 transition-all duration-300 bg-transparent text-green-500 hover:text-white"

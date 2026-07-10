@@ -7,7 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
-import { ChefLogo } from "@/components/ChefLogo"; // Import nowego komponentu logo
+import { ChefLogo } from "@/components/ChefLogo";
+import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { PageFooter } from "@/components/PageFooter"; // Import nowego komponentu logo
 
 const RecipeGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
@@ -62,9 +64,9 @@ const RecipeGenerator = () => {
         toast.error("Nie otrzymano odpowiedzi od generatora przepisów.");
         // Nie ustawiaj conversionTable na komunikat o błędzie
       }
-    } catch (e: any) {
+    } catch (e) {
       console.error("Unexpected error:", e);
-      toast.error(`Wystąpił nieoczekiwany błąd: ${e.message}`);
+      toast.error(`Wystąpił nieoczekiwany błąd: ${e instanceof Error ? e.message : String(e)}`);
       // Nie ustawiaj conversionTable na komunikat o błędzie
     } finally {
       setIsLoading(false);
@@ -79,7 +81,8 @@ const RecipeGenerator = () => {
   };
 
   return (
-    <div className="container mx-auto p-4 max-w-3xl">
+    <div className="min-h-screen bg-background container mx-auto p-4 max-w-3xl">
+      <SiteHomeButton />
       <Card className="w-full">
         <CardHeader>
           <ChefLogo className="mb-4" />
@@ -140,12 +143,7 @@ const RecipeGenerator = () => {
           )}
         </CardContent>
       </Card>
-      <div className="text-center mt-8 text-gray-600 dark:text-gray-400 text-sm">
-        Stworzył Paweł Malec ® | Jeśli chcesz mnie wesprzeć{" "}
-        <a href="https://tipped.pl/pmcmalec" target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700 underline">
-          https://tipped.pl/pmcmalec
-        </a>
-      </div>
+      <PageFooter />
     </div>
   );
 };
