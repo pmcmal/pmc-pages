@@ -1,6 +1,7 @@
 import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -36,7 +37,9 @@ const BlogPost = () => {
           <div className="text-sm text-gray-400 dark:text-gray-500 mb-2">{post.date}</div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-8">{post.title}</h1>
           <div className="prose prose-gray dark:prose-invert max-w-none">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>{post.content}</ReactMarkdown>
+            <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+              {post.content}
+            </ReactMarkdown>
           </div>
         </article>
 
