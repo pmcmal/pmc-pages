@@ -1,5 +1,4 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,6 +6,16 @@ const corsHeaders = {
 };
 
 const REPO = "pmcmal/pmc-pages";
+
+// UTF-8 bezpieczne base64 (btoa sam nie radzi sobie z polskimi znakami)
+function toBase64(text: string): string {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  for (let i = 0; i < bytes.length; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
 
 // Sprawdza, czy Authorization header niesie prawdziwa sesje zalogowanego uzytkownika
 // (role "authenticated"), a nie tylko publiczny anon key (rowniez technicznie poprawny JWT).
@@ -83,7 +92,7 @@ serve(async (req) => {
       headers: githubHeaders,
       body: JSON.stringify({
         message: sha ? `Blog: aktualizacja "${title}"` : `Blog: nowy wpis "${title}"`,
-        content: encodeBase64(new TextEncoder().encode(fileContent)),
+        content: toBase64(fileContent),
         sha,
       }),
     });

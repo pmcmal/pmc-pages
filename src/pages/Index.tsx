@@ -1,4 +1,5 @@
 import type { ElementType } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "next-themes";
 import {
@@ -15,9 +16,11 @@ import {
   ShoppingCart,
   ArrowRight,
   Newspaper,
+  ChevronDown,
 } from "lucide-react";
 import { PMCLogo } from "@/components/PMCLogo";
 import { PageFooter } from "@/components/PageFooter";
+import { getAllPosts } from "@/lib/blog";
 
 interface ProjectCard {
   title: string;
@@ -91,17 +94,12 @@ const projects: ProjectCard[] = [
     icon: ShoppingCart,
     accent: "text-lime-500 bg-lime-500/10",
   },
-  {
-    title: "Blog",
-    description: "Notatki o innych projektach i rzeczach, które robię poza tymi podstronami.",
-    path: "/blog",
-    icon: Newspaper,
-    accent: "text-cyan-500 bg-cyan-500/10",
-  },
 ];
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
+  const [blogOpen, setBlogOpen] = useState(false);
+  const posts = getAllPosts();
 
   const toggleTheme = () => {
     setTheme(theme === "dark" ? "light" : "dark");
@@ -150,6 +148,44 @@ const Index = () => {
               </Link>
             );
           })}
+        </div>
+
+        <div className="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
+          <button
+            onClick={() => setBlogOpen(!blogOpen)}
+            className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+          >
+            <span className="flex items-center gap-2 font-semibold">
+              <Newspaper className="w-4 h-4 text-cyan-500" /> Blog
+            </span>
+            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${blogOpen ? "rotate-180" : ""}`} />
+          </button>
+          {blogOpen && (
+            <div className="px-5 pb-5 border-t border-gray-200 dark:border-gray-800 pt-4">
+              {posts.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">Brak wpisów jeszcze.</p>
+              ) : (
+                <div className="space-y-3">
+                  {posts.slice(0, 5).map((post) => (
+                    <Link
+                      key={post.slug}
+                      to={`/blog/${post.slug}`}
+                      className="block group"
+                    >
+                      <div className="text-xs text-gray-400 dark:text-gray-500">{post.date}</div>
+                      <div className="font-medium group-hover:underline">{post.title}</div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+              <Link
+                to="/blog"
+                className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-500 hover:text-gray-900 dark:hover:text-gray-100"
+              >
+                Zobacz wszystkie <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+          )}
         </div>
 
         <div className="mt-16">
