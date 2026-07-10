@@ -1,5 +1,12 @@
 # PMCmalec — pmc-pages
 
+[![CI](https://github.com/pmcmal/pmc-pages/actions/workflows/ci.yml/badge.svg)](https://github.com/pmcmal/pmc-pages/actions/workflows/ci.yml)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 Zbiór moich mini-projektów portfolio: generatory oparte na AI, gra, symulator kursu AI
 i demo sklepu. Frontend to jedna aplikacja React (Vite + React Router), a pięć
 generatorów AI korzysta z Supabase Edge Functions wywołujących darmowe modele
@@ -26,7 +33,6 @@ przez [OpenRouter](https://openrouter.ai).
 - Tailwind CSS + [shadcn/ui](https://ui.shadcn.com/) (komponenty w `src/components/ui/` — nie edytować ręcznie, tylko przez shadcn CLI)
 - React Router — wszystkie trasy zdefiniowane w [`src/App.tsx`](src/App.tsx)
 - Supabase Edge Functions (Deno) w `supabase/functions/*` — wywołują OpenRouter
-- Capacitor (`android/`, `ios/`) — opcjonalne, do budowania wersji mobilnej
 
 ## Uruchomienie lokalnie
 
@@ -87,16 +93,6 @@ działa normalnie.
 (darmowy klucz) — bez `VITE_OPENWEATHERMAP_API_KEY` w `.env.local` strona
 automatycznie przełącza się na symulowane dane.
 
-## Wersja mobilna (Capacitor)
-
-`android/` i `ios/` to szkielety Capacitor. Po zmianach w `capacitor.config.ts`
-lub w buildzie webowym zsynchronizuj je przed budowaniem w Android Studio / Xcode:
-
-```bash
-pnpm build
-npx cap sync
-```
-
 ## Deploy
 
 Projekt jest skonfigurowany pod [Vercel](https://vercel.com) (`vercel.json` —
@@ -104,6 +100,17 @@ przepisuje wszystkie ścieżki na `index.html` dla React Router). Zmienne
 środowiskowe (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
 `VITE_OPENWEATHERMAP_API_KEY`) trzeba ustawić w panelu projektu Vercel.
 
+## Bezpieczeństwo
+
+- Żadne sekrety nie są trzymane w repo — patrz `.env.example` i `.gitignore`.
+- Klucz OpenRouter żyje wyłącznie jako sekret Supabase Edge Functions (`supabase secrets set`), nigdy w kodzie frontendu.
+- `vercel.json` ustawia podstawowe nagłówki bezpieczeństwa (`X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
+- CI (`.github/workflows/ci.yml`) uruchamia typecheck, lint i build przy każdym pushu/PR.
+
+## Licencja
+
+[MIT](LICENSE)
+
 ---
 
-Stworzył Paweł Malec ® · [tipped.pl/pmcmalec](https://tipped.pl/pmcmalec)
+Stworzył Paweł Malec ® · [LinkedIn](https://pl.linkedin.com/in/pmcmalec) · [GitHub](https://github.com/pmcmal) · [tipped.pl/pmcmalec](https://tipped.pl/pmcmalec)
