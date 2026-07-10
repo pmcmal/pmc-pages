@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -101,6 +101,65 @@ const Editor = ({ session }: { session: Session }) => {
   const [slugTouched, setSlugTouched] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [posts, setPosts] = useState<BlogPost[]>(getAllPosts());
+  const [instruction, setInstruction] = useState("");
+  const [aiResult, setAiResult] = useState("");
+  const [isAsking, setIsAsking] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
+  const contentRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const insertAtCursor = (text: string) => {
+    const textarea = contentRef.current;
+    if (!textarea) {
+      setForm((f) => ({ ...f, content: f.content + text }));
+      return;
+    }
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    setForm((f) => ({ ...f, content: f.content.slice(0, start) + text + f.content.slice(end) }));
+    requestAnimationFrame(() => {
+      textarea.focus();
+      textarea.selectionStart = textarea.selectionEnd = start + text.length;
+    });
+  };
+
+  const handleAskAi = async () => {
+    if (!instruction.trim()) {
+      toast.error("Napisz czego potrzebujesz od asystenta.");
+      return;
+    }
+    setIsAsking(true);
+    setAiResult("");
+    try {
+      const { data, error } = await supabase.functions.invoke("blog-ai-assist", {
+        body: { instruction: instruction.trim(), content: form.content, title: form.title },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiResult(data.result || "");
+    } catch (e) {
+      toast.error(`Błąd asystenta AI: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIsAsking(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { error } = await supabase.storage.from("blog-images").upload(path, file);
+      if (error) throw error;
+      const { data } = supabase.storage.from("blog-images").getPublicUrl(path);
+      insertAtCursor(`![${file.name}](${data.publicUrl})\n`);
+      toast.success("Zdjęcie wgrane i wstawione do treści.");
+    } catch (e) {
+      toast.error(`Błąd wgrywania zdjęcia: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const handleTitleChange = (value: string) => {
     setForm((f) => ({ ...f, title: value }));
@@ -111,12 +170,16 @@ const Editor = ({ session }: { session: Session }) => {
     setForm({ title: post.title, slug: post.slug, excerpt: post.excerpt, content: post.content, date: post.date });
     setSlugTouched(true);
     setIsEditing(true);
+    setAiResult("");
+    setInstruction("");
   };
 
   const resetForm = () => {
     setForm(emptyForm);
     setSlugTouched(false);
     setIsEditing(false);
+    setAiResult("");
+    setInstruction("");
   };
 
   const handlePublish = async () => {
@@ -247,15 +310,78 @@ const Editor = ({ session }: { session: Session }) => {
               <Input id="excerpt" value={form.excerpt} onChange={(e) => setForm((f) => ({ ...f, excerpt: e.target.value }))} />
             </div>
             <div>
-              <Label htmlFor="content">Treść (Markdown)</Label>
+              <div className="flex items-center justify-between mb-1">
+                <Label htmlFor="content">Treść (Markdown)</Label>
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                      e.target.value = "";
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingImage}
+                  >
+                    {isUploadingImage ? "Wgrywanie..." : "🖼️ Wgraj zdjęcie"}
+                  </Button>
+                </div>
+              </div>
               <Textarea
                 id="content"
+                ref={contentRef}
                 rows={20}
                 value={form.content}
                 onChange={(e) => setForm((f) => ({ ...f, content: e.target.value }))}
                 className="font-mono text-sm"
               />
             </div>
+
+            <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900/50 space-y-3">
+              <Label htmlFor="ai-instruction">Asystent AI (redakcja, pomysły, poprawki)</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="ai-instruction"
+                  placeholder="np. 'zaproponuj tytuł', 'popraw styl i literówki', 'rozwiń ten fragment'..."
+                  value={instruction}
+                  onChange={(e) => setInstruction(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleAskAi()}
+                />
+                <Button type="button" onClick={handleAskAi} disabled={isAsking}>
+                  {isAsking ? "Myślę..." : "Zapytaj"}
+                </Button>
+              </div>
+              {aiResult && (
+                <div className="space-y-2">
+                  <Textarea readOnly rows={8} value={aiResult} className="font-mono text-sm bg-white dark:bg-gray-900" />
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={() => insertAtCursor(aiResult)}>
+                      Wstaw do treści
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setForm((f) => ({ ...f, content: aiResult }))}
+                    >
+                      Zastąp całą treść
+                    </Button>
+                    <Button type="button" size="sm" variant="ghost" onClick={() => setAiResult("")}>
+                      Odrzuć
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <Button onClick={handlePublish} disabled={isSaving} className="w-full">
               {isSaving ? "Publikowanie..." : isEditing ? "Zapisz zmiany" : "Opublikuj"}
             </Button>
