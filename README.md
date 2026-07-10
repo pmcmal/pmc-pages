@@ -7,15 +7,8 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-Zbiór moich mini-projektów portfolio: generatory oparte na AI, gra, symulator kursu AI
-i demo sklepu. Frontend to jedna aplikacja React (Vite + React Router), a pięć
-generatorów AI korzysta z Supabase Edge Functions wywołujących darmowe modele
-przez [OpenRouter](https://openrouter.ai).
-
 <details>
-<summary><strong>English version</strong> (click to expand)</summary>
-
-# PMCmalec — pmc-pages
+<summary><strong>🇬🇧 English version</strong> (click to expand)</summary>
 
 A collection of my portfolio mini-projects: AI-powered generators, a game, an
 interactive AI-course simulator, and a store demo. The frontend is a single
@@ -130,6 +123,14 @@ Built by Paweł Malec ® · [LinkedIn](https://pl.linkedin.com/in/pmcmalec) · [
 
 </details>
 
+<details open>
+<summary><strong>🇵🇱 Wersja polska</strong> (kliknij, żeby zwinąć)</summary>
+
+Zbiór moich mini-projektów portfolio: generatory oparte na AI, gra, symulator kursu AI
+i demo sklepu. Frontend to jedna aplikacja React (Vite + React Router), a pięć
+generatorów AI korzysta z Supabase Edge Functions wywołujących darmowe modele
+przez [OpenRouter](https://openrouter.ai).
+
 ## Podstrony
 
 | Ścieżka | Co to jest | Wymaga backendu AI |
@@ -232,3 +233,5 @@ przepisuje wszystkie ścieżki na `index.html` dla React Router). Zmienne
 ---
 
 Stworzył Paweł Malec ® · [LinkedIn](https://pl.linkedin.com/in/pmcmalec) · [GitHub](https://github.com/pmcmal) · [tipped.pl/pmcmalec](https://tipped.pl/pmcmalec)
+
+</details>
