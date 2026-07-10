@@ -12,6 +12,124 @@ i demo sklepu. Frontend to jedna aplikacja React (Vite + React Router), a pięć
 generatorów AI korzysta z Supabase Edge Functions wywołujących darmowe modele
 przez [OpenRouter](https://openrouter.ai).
 
+<details>
+<summary><strong>English version</strong> (click to expand)</summary>
+
+# PMCmalec — pmc-pages
+
+A collection of my portfolio mini-projects: AI-powered generators, a game, an
+interactive AI-course simulator, and a store demo. The frontend is a single
+React app (Vite + React Router); five of the AI generators call Supabase Edge
+Functions that use free models through [OpenRouter](https://openrouter.ai).
+
+## Pages
+
+| Path | What it is | Needs AI backend |
+|---|---|---|
+| `/` | Home — links to every page | — |
+| `/powershell-generator` | PowerShell script generator | ✅ |
+| `/philosopher-coach` | Philosopher & life coach | ✅ |
+| `/recipe-generator` | Recipe generator | ✅ |
+| `/story-generator` | Short story generator | ✅ |
+| `/electronic-project-generator` | Electronics project idea generator | ✅ |
+| `/short-ai-course` | Short interactive AI course with quiz & simulator | — (runs entirely client-side) |
+| `/weather-forecast-ai` | Smart Weather (OpenWeatherMap, with a simulated fallback) | — |
+| `/space-invaders` | Space Invaders game (canvas) | — |
+| `/portfolio-store` | Terminal-styled demo store | — |
+
+## Stack
+
+- React 18 + TypeScript, Vite 6
+- Tailwind CSS + [shadcn/ui](https://ui.shadcn.com/) (components in `src/components/ui/` — regenerate via the shadcn CLI, don't hand-edit)
+- React Router — all routes defined in [`src/App.tsx`](src/App.tsx)
+- Supabase Edge Functions (Deno) in `supabase/functions/*` — call OpenRouter
+
+## Running locally
+
+Requires Node 20+ and [pnpm](https://pnpm.io/).
+
+```bash
+pnpm install
+cp .env.example .env.local   # fill in the variables, see "AI backend" below
+pnpm dev                     # http://localhost:8080
+```
+
+Other useful commands:
+
+```bash
+pnpm build       # production build into dist/
+pnpm lint        # eslint
+pnpm preview     # preview the production build
+```
+
+## AI backend (Supabase + OpenRouter)
+
+Five generators (PowerShell, Recipes, Stories, Electronics, Philosopher/Coach)
+call a Supabase Edge Function that asks an AI model through OpenRouter. All on
+free tiers:
+
+1. Create a free project at [supabase.com](https://supabase.com) and copy the
+   `Project URL` and `anon key` (Project Settings → API) into `.env.local` as
+   `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+2. Create a free API key at [openrouter.ai/keys](https://openrouter.ai/keys).
+3. Log in and link the CLI:
+   ```bash
+   npx supabase login
+   npx supabase link --project-ref <your-project-ref>
+   ```
+4. Set the OpenRouter key as a secret (used by all 5 functions):
+   ```bash
+   npx supabase secrets set OPENROUTER_API_KEY=your_key
+   ```
+5. Deploy the functions (one by one):
+   ```bash
+   npx supabase functions deploy generate-powershell-script
+   npx supabase functions deploy philosopher-coach
+   npx supabase functions deploy generate-recipe
+   npx supabase functions deploy generate-story
+   npx supabase functions deploy generate-electronic-project
+   ```
+
+Models are selected via `openrouter/free` — OpenRouter's free router, which
+picks an available free model itself, so it doesn't need updating when a
+specific model stops being free.
+
+Without this configuration the generators will show a communication error —
+the rest of the site works normally.
+
+### Weather (optional)
+
+`/weather-forecast-ai` uses [OpenWeatherMap](https://home.openweathermap.org/api_keys)
+(free key) — without `VITE_OPENWEATHERMAP_API_KEY` in `.env.local` the page
+automatically falls back to simulated data.
+
+## Deploy
+
+The project is configured for [Vercel](https://vercel.com) (`vercel.json`
+rewrites every path to `index.html` for React Router). Environment variables
+(`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_OPENWEATHERMAP_API_KEY`)
+need to be set in the Vercel project dashboard.
+
+## Security
+
+- No secrets are kept in the repo — see `.env.example` and `.gitignore`.
+- The OpenRouter key lives only as a Supabase Edge Functions secret
+  (`supabase secrets set`), never in frontend code.
+- `vercel.json` sets baseline security headers (`X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`).
+- CI (`.github/workflows/ci.yml`) runs typecheck, lint and build on every
+  push/PR.
+
+## License
+
+[MIT](LICENSE)
+
+---
+
+Built by Paweł Malec ® · [LinkedIn](https://pl.linkedin.com/in/pmcmalec) · [GitHub](https://github.com/pmcmal) · [tipped.pl/pmcmalec](https://tipped.pl/pmcmalec)
+
+</details>
+
 ## Podstrony
 
 | Ścieżka | Co to jest | Wymaga backendu AI |
