@@ -1,5 +1,5 @@
 import type { ElementType } from "react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTheme } from "next-themes";
 import {
@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Newspaper,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { PMCLogo } from "@/components/PMCLogo";
 import { PageFooter } from "@/components/PageFooter";
@@ -28,6 +29,7 @@ interface ProjectCard {
   path: string;
   icon: ElementType;
   accent: string;
+  category: "ai" | "other";
 }
 
 const projects: ProjectCard[] = [
@@ -37,6 +39,7 @@ const projects: ProjectCard[] = [
     path: "/powershell-generator",
     icon: Terminal,
     accent: "text-sky-500 bg-sky-500/10",
+    category: "ai",
   },
   {
     title: "Filozof i Coach Życiowy",
@@ -44,6 +47,7 @@ const projects: ProjectCard[] = [
     path: "/philosopher-coach",
     icon: Brain,
     accent: "text-violet-500 bg-violet-500/10",
+    category: "ai",
   },
   {
     title: "Generator Przepisów AI",
@@ -51,6 +55,7 @@ const projects: ProjectCard[] = [
     path: "/recipe-generator",
     icon: ChefHat,
     accent: "text-orange-500 bg-orange-500/10",
+    category: "ai",
   },
   {
     title: "Generator Opowiadań AI",
@@ -58,6 +63,7 @@ const projects: ProjectCard[] = [
     path: "/story-generator",
     icon: BookOpen,
     accent: "text-pink-500 bg-pink-500/10",
+    category: "ai",
   },
   {
     title: "Generator Projektów Elektronicznych",
@@ -65,6 +71,7 @@ const projects: ProjectCard[] = [
     path: "/electronic-project-generator",
     icon: CircuitBoard,
     accent: "text-emerald-500 bg-emerald-500/10",
+    category: "ai",
   },
   {
     title: "Krótki Kurs AI",
@@ -72,6 +79,7 @@ const projects: ProjectCard[] = [
     path: "/short-ai-course",
     icon: GraduationCap,
     accent: "text-indigo-500 bg-indigo-500/10",
+    category: "other",
   },
   {
     title: "Inteligentna Pogoda",
@@ -79,6 +87,7 @@ const projects: ProjectCard[] = [
     path: "/weather-forecast-ai",
     icon: CloudSun,
     accent: "text-purple-500 bg-purple-500/10",
+    category: "other",
   },
   {
     title: "Space Invaders",
@@ -86,6 +95,7 @@ const projects: ProjectCard[] = [
     path: "/space-invaders",
     icon: Rocket,
     accent: "text-green-500 bg-green-500/10",
+    category: "other",
   },
   {
     title: "Przykładowy Sklep WWW",
@@ -93,8 +103,65 @@ const projects: ProjectCard[] = [
     path: "/portfolio-store",
     icon: ShoppingCart,
     accent: "text-lime-500 bg-lime-500/10",
+    category: "other",
   },
 ];
+
+const aiProjects = projects.filter((p) => p.category === "ai");
+const otherProjects = projects.filter((p) => p.category === "other");
+
+const MAGNIFY_RADIUS = 220;
+const MAGNIFY_MAX_SCALE = 1.06;
+
+const ProjectGrid = ({ items }: { items: ProjectCard[] }) => {
+  const cardRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
+  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+
+  const getScale = (path: string) => {
+    if (!mousePos) return 1;
+    const el = cardRefs.current[path];
+    if (!el) return 1;
+    const rect = el.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(mousePos.x - cx, mousePos.y - cy);
+    if (dist > MAGNIFY_RADIUS) return 1;
+    const t = 1 - dist / MAGNIFY_RADIUS;
+    return 1 + t * (MAGNIFY_MAX_SCALE - 1);
+  };
+
+  return (
+    <div
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
+      onMouseLeave={() => setMousePos(null)}
+    >
+      {items.map((project) => {
+        const Icon = project.icon;
+        return (
+          <Link
+            key={project.path}
+            ref={(el) => {
+              cardRefs.current[project.path] = el;
+            }}
+            to={project.path}
+            style={{ transform: `scale(${getScale(project.path)})`, transition: "transform 150ms ease-out" }}
+            className="group flex flex-col p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-md will-change-transform"
+          >
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${project.accent}`}>
+              <Icon className="w-5 h-5" />
+            </div>
+            <h2 className="font-semibold mb-1">{project.title}</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400 flex-grow">{project.description}</p>
+            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-400 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+              Otwórz <ArrowRight className="w-3.5 h-3.5" />
+            </span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+};
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
@@ -126,29 +193,19 @@ const Index = () => {
           </p>
         </header>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {projects.map((project) => {
-            const Icon = project.icon;
-            return (
-              <Link
-                key={project.path}
-                to={project.path}
-                className="group flex flex-col p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-md transition-all"
-              >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-4 ${project.accent}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <h2 className="font-semibold mb-1">{project.title}</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 flex-grow">
-                  {project.description}
-                </p>
-                <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-400 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
-                  Otwórz <ArrowRight className="w-3.5 h-3.5" />
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+        <section className="mb-10">
+          <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-4">
+            <Sparkles className="w-4 h-4" /> Wsparte na AI
+          </h2>
+          <ProjectGrid items={aiProjects} />
+        </section>
+
+        <section>
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-4">
+            Pozostałe projekty
+          </h2>
+          <ProjectGrid items={otherProjects} />
+        </section>
 
         <div className="mt-4 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
           <button
@@ -167,11 +224,7 @@ const Index = () => {
               ) : (
                 <div className="space-y-3">
                   {posts.slice(0, 5).map((post) => (
-                    <Link
-                      key={post.slug}
-                      to={`/blog/${post.slug}`}
-                      className="block group"
-                    >
+                    <Link key={post.slug} to={`/blog/${post.slug}`} className="block group">
                       <div className="text-xs text-gray-400 dark:text-gray-500">{post.date}</div>
                       <div className="font-medium group-hover:underline">{post.title}</div>
                     </Link>

@@ -8,16 +8,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { ResizableImage } from "@/components/ResizableImage";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPosts, type BlogPost } from "@/lib/blog";
+
+// Podmienia width="N" w konkretnym tagu <img src="..."> na nowa wartosc (albo dodaje atrybut, jesli go nie ma)
+function updateImageWidthInMarkdown(markdown: string, src: string, newWidth: number): string {
+  const escapedSrc = src.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const imgTagRegex = new RegExp(`<img[^>]*src="${escapedSrc}"[^>]*/?>`, "g");
+  return markdown.replace(imgTagRegex, (tag) =>
+    /width="\d+"/.test(tag)
+      ? tag.replace(/width="\d+"/, `width="${newWidth}"`)
+      : tag.replace(/\s*\/?>$/, ` width="${newWidth}" />`),
+  );
+}
 
 const slugify = (title: string) =>
   title
@@ -113,7 +118,6 @@ const Editor = ({ session }: { session: Session }) => {
   const [aiResult, setAiResult] = useState("");
   const [isAsking, setIsAsking] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
-  const [imageWidth, setImageWidth] = useState("600");
   const contentRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -161,9 +165,8 @@ const Editor = ({ session }: { session: Session }) => {
       const { error } = await supabase.storage.from("blog-images").upload(path, file);
       if (error) throw error;
       const { data } = supabase.storage.from("blog-images").getPublicUrl(path);
-      const widthAttr = imageWidth === "full" ? "" : ` width="${imageWidth}"`;
-      insertAtCursor(`<img src="${data.publicUrl}" alt="${file.name}"${widthAttr} />\n`);
-      toast.success("Zdjęcie wgrane i wstawione do treści. Rozmiar możesz później zmienić edytując liczbę w atrybucie width w tekście.");
+      insertAtCursor(`<img src="${data.publicUrl}" alt="${file.name}" width="600" />\n`);
+      toast.success("Zdjęcie wgrane. Najedź na nie w podglądzie i przeciągnij za rożek, żeby zmienić rozmiar.");
     } catch (e) {
       toast.error(`Błąd wgrywania zdjęcia: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
@@ -323,17 +326,6 @@ const Editor = ({ session }: { session: Session }) => {
               <div className="flex items-center justify-between mb-1">
                 <Label htmlFor="content">Treść (Markdown)</Label>
                 <div className="flex items-center gap-2">
-                  <Select value={imageWidth} onValueChange={setImageWidth}>
-                    <SelectTrigger className="h-8 w-[150px] text-xs">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="300">Małe (300px)</SelectItem>
-                      <SelectItem value="600">Średnie (600px)</SelectItem>
-                      <SelectItem value="900">Duże (900px)</SelectItem>
-                      <SelectItem value="full">Pełna szerokość</SelectItem>
-                    </SelectContent>
-                  </Select>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -412,7 +404,22 @@ const Editor = ({ session }: { session: Session }) => {
             <Label>Podgląd na żywo</Label>
             <div className="mt-2 p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 prose prose-gray dark:prose-invert max-w-none min-h-[500px]">
               <h1>{form.title || "Tytuł wpisu"}</h1>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                rehypePlugins={[rehypeRaw]}
+                components={{
+                  img: ({ src, alt, width }) => (
+                    <ResizableImage
+                      src={typeof src === "string" ? src : undefined}
+                      alt={alt}
+                      width={width}
+                      onResizeEnd={(imgSrc, newWidth) =>
+                        setForm((f) => ({ ...f, content: updateImageWidthInMarkdown(f.content, imgSrc, newWidth) }))
+                      }
+                    />
+                  ),
+                }}
+              >
                 {form.content || "*Podgląd treści pojawi się tutaj...*"}
               </ReactMarkdown>
             </div>
