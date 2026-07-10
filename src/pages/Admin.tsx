@@ -19,6 +19,35 @@ const slugify = (title: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
+const IDLE_LOGOUT_MS = 5 * 60 * 1000;
+
+// Wylogowuje po 5 min bez ruchu myszki/klawiatury - panel admina jest publicznie
+// dostepny pod znanym adresem, wiec zapomniana otwarta sesja jest ryzykiem.
+function useIdleLogout() {
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+
+    const logout = () => {
+      supabase.auth.signOut();
+      toast.info("Wylogowano automatycznie po 5 minutach bezczynności.");
+    };
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(logout, IDLE_LOGOUT_MS);
+    };
+
+    const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"];
+    events.forEach((event) => window.addEventListener(event, resetTimer));
+    resetTimer();
+
+    return () => {
+      clearTimeout(timeoutId);
+      events.forEach((event) => window.removeEventListener(event, resetTimer));
+    };
+  }, []);
+}
+
 const LoginForm = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -65,6 +94,7 @@ const LoginForm = () => {
 const emptyForm = { title: "", slug: "", excerpt: "", content: "", date: "" };
 
 const Editor = ({ session }: { session: Session }) => {
+  useIdleLogout();
   const [form, setForm] = useState(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
