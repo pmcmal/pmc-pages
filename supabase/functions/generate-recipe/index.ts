@@ -5,6 +5,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Niektore darmowe modele owijaja odpowiedz w blok markdown ```json ... ``` mimo instrukcji w promptcie
+function extractJson(text: string): string {
+  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+  return match ? match[1] : text;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -61,7 +67,7 @@ serve(async (req) => {
 
     let parsedResponse;
     try {
-      parsedResponse = JSON.parse(aiResponseContent);
+      parsedResponse = JSON.parse(extractJson(aiResponseContent));
     } catch (e) {
       console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
       // Jeśli parsowanie się nie powiedzie, ustaw conversionTable na pusty ciąg
