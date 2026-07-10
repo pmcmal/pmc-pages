@@ -62,6 +62,7 @@ serve(async (req) => {
           },
         ],
         max_tokens: 1500, // Zwiększono limit tokenów, aby pomieścić kod i komponenty
+        provider: { sort: "throughput" }, // preferuj najszybszego dostawce
       }),
     });
 

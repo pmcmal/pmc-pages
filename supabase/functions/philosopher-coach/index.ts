@@ -53,6 +53,7 @@ serve(async (req) => {
           },
         ],
         max_tokens: 1024,
+        provider: { sort: "throughput" }, // preferuj najszybszego dostawce
       }),
     });
 

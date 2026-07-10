@@ -271,9 +271,19 @@ const WeatherForecastAI = () => {
                 },
                 (error) => {
                     console.error("Geolocation error:", error);
-                    setError("Nie udało się pobrać Twojej lokalizacji. Upewnij się, że masz włączoną geolokalizację.");
+                    let message = "Nie udało się pobrać Twojej lokalizacji.";
+                    if (error.code === error.PERMISSION_DENIED) {
+                        message = "Odmówiono dostępu do lokalizacji. Sprawdź uprawnienia przeglądarki dla tej strony ORAZ ustawienia systemowe (Windows: Ustawienia > Prywatność i zabezpieczenia > Lokalizacja).";
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        message = "Lokalizacja niedostępna. Sprawdź, czy usługa lokalizacji jest włączona w systemie operacyjnym (nie tylko w przeglądarce).";
+                    } else if (error.code === error.TIMEOUT) {
+                        message = "Przekroczono czas oczekiwania na lokalizację. Spróbuj ponownie.";
+                    }
+                    setError(message);
+                    toast.error(message);
                     setLoading(false);
-                }
+                },
+                { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
             );
         } else {
             setError("Twoja przeglądarka nie obsługuje geolokalizacji.");
@@ -594,7 +604,7 @@ const WeatherForecastAI = () => {
                             </div>
                             <Button
                                 onClick={getWeatherByCity}
-                                className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                                className="px-8 py-4 bg-purple-600 hover:bg-purple-700 text-white disabled:text-white disabled:opacity-90 font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
                                 disabled={loading}
                             >
                                 <Search className="mr-2 inline-block" size={20} />
@@ -602,7 +612,7 @@ const WeatherForecastAI = () => {
                             </Button>
                             <Button
                                 onClick={getWeatherByLocation}
-                                className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
+                                className="px-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white disabled:text-white disabled:opacity-90 font-semibold rounded-xl transition-all transform hover:scale-105 shadow-lg"
                                 disabled={loading}
                             >
                                 <LocateFixed className="mr-2 inline-block" size={20} />

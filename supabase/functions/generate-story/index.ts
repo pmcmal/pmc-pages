@@ -57,6 +57,7 @@ serve(async (req) => {
           },
         ],
         max_tokens: 4096, // Ustawienie na 4096 tokenów dla dłuższych odpowiedzi
+        provider: { sort: "throughput" }, // preferuj najszybszego dostawce
       }),
     });
 

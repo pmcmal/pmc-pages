@@ -153,7 +153,7 @@
     animation: float 3s ease-in-out infinite;
 }
 .gradient-bg {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #3d4fc4 0%, #522d78 100%);
 }
 .glass-effect {
     background: rgba(255, 255, 255, 0.1);
