@@ -17,6 +17,9 @@ const ShortAICourse = lazy(() => import("./pages/ShortAICourse"));
 const WeatherForecastAI = lazy(() => import("./pages/WeatherForecastAI"));
 const SpaceInvaders = lazy(() => import("./pages/SpaceInvaders"));
 const PortfolioStore = lazy(() => import("./pages/PortfolioStore"));
+const BlogList = lazy(() => import("./pages/BlogList"));
+const BlogPost = lazy(() => import("./pages/BlogPost"));
+const Admin = lazy(() => import("./pages/Admin"));
 
 const queryClient = new QueryClient();
 
@@ -39,6 +42,9 @@ const App = () => (
               <Route path="/weather-forecast-ai" element={<WeatherForecastAI />} />
               <Route path="/space-invaders" element={<SpaceInvaders />} />
               <Route path="/portfolio-store" element={<PortfolioStore />} />
+              <Route path="/blog" element={<BlogList />} />
+              <Route path="/blog/:slug" element={<BlogPost />} />
+              <Route path="/admin" element={<Admin />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

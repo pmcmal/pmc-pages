@@ -1,0 +1,108 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { encodeBase64 } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+const REPO = "pmcmal/pmc-pages";
+
+// Sprawdza, czy Authorization header niesie prawdziwa sesje zalogowanego uzytkownika
+// (role "authenticated"), a nie tylko publiczny anon key (rowniez technicznie poprawny JWT).
+function getJwtRole(authHeader: string | null): string | null {
+  if (!authHeader) return null;
+  const token = authHeader.replace(/^Bearer\s+/i, "");
+  const parts = token.split(".");
+  if (parts.length !== 3) return null;
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4);
+    const decoded = JSON.parse(atob(padded));
+    return decoded.role ?? null;
+  } catch {
+    return null;
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const role = getJwtRole(req.headers.get("Authorization"));
+  if (role !== "authenticated") {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 401,
+    });
+  }
+
+  try {
+    const { slug, title, excerpt, content } = await req.json();
+
+    if (!slug || !title || !content) {
+      return new Response(JSON.stringify({ error: "slug, title i content sa wymagane" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return new Response(JSON.stringify({ error: "Slug moze zawierac tylko male litery, cyfry i myslniki" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    const githubToken = Deno.env.get("GITHUB_PAT");
+    if (!githubToken) {
+      throw new Error("GITHUB_PAT is not set in environment variables.");
+    }
+
+    const path = `content/blog/${slug}.md`;
+    const date = new Date().toISOString().split("T")[0];
+    const fileContent = `---\ntitle: ${title}\ndate: ${date}\nexcerpt: ${excerpt || ""}\n---\n\n${content}\n`;
+
+    const githubHeaders = {
+      Authorization: `Bearer ${githubToken}`,
+      Accept: "application/vnd.github+json",
+      "Content-Type": "application/json",
+    };
+
+    let sha: string | undefined;
+    const existing = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+      headers: githubHeaders,
+    });
+    if (existing.ok) {
+      const existingData = await existing.json();
+      sha = existingData.sha;
+    }
+
+    const putResponse = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+      method: "PUT",
+      headers: githubHeaders,
+      body: JSON.stringify({
+        message: sha ? `Blog: aktualizacja "${title}"` : `Blog: nowy wpis "${title}"`,
+        content: encodeBase64(new TextEncoder().encode(fileContent)),
+        sha,
+      }),
+    });
+
+    if (!putResponse.ok) {
+      const errorData = await putResponse.json();
+      console.error("GitHub API error:", errorData);
+      throw new Error(`GitHub API returned an error: ${putResponse.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    return new Response(JSON.stringify({ success: true, path }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
+    });
+  } catch (error) {
+    console.error("Error saving blog post:", error);
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+    });
+  }
+});

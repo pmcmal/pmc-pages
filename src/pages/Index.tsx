@@ -14,6 +14,7 @@ import {
   Rocket,
   ShoppingCart,
   ArrowRight,
+  Newspaper,
 } from "lucide-react";
 import { PMCLogo } from "@/components/PMCLogo";
 import { PageFooter } from "@/components/PageFooter";
@@ -89,6 +90,13 @@ const projects: ProjectCard[] = [
     path: "/portfolio-store",
     icon: ShoppingCart,
     accent: "text-lime-500 bg-lime-500/10",
+  },
+  {
+    title: "Blog",
+    description: "Notatki o innych projektach i rzeczach, które robię poza tymi podstronami.",
+    path: "/blog",
+    icon: Newspaper,
+    accent: "text-cyan-500 bg-cyan-500/10",
   },
 ];
 
