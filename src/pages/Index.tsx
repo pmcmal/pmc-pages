@@ -114,9 +114,9 @@ const Index = () => {
       <div className="container mx-auto max-w-5xl px-4 py-16">
         <header className="flex flex-col items-center text-center mb-14">
           <PMCLogo />
-          <h1 className="text-4xl sm:text-5xl font-bold mt-6 tracking-tight">PMCmalec</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-3 max-w-xl">
-            Kolekcja moich mini-projektów AI, gier i demo. Wybierz podstronę, żeby zacząć.
+          <h1 className="text-xl sm:text-2xl font-semibold mt-5 tracking-tight">Paweł Malec</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2 max-w-xl">
+            Portfolio: mini-projekty AI, gry i demo. Wybierz podstronę, żeby zacząć.
           </p>
         </header>
 
