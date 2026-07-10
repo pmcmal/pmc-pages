@@ -48,16 +48,11 @@ serve(async (req) => {
   }
 
   try {
-    const { slug, title, excerpt, content } = await req.json();
+    const body = await req.json();
+    const { slug, action } = body;
 
-    if (!slug || !title || !content) {
-      return new Response(JSON.stringify({ error: "slug, title i content sa wymagane" }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-    if (!/^[a-z0-9-]+$/.test(slug)) {
-      return new Response(JSON.stringify({ error: "Slug moze zawierac tylko male litery, cyfry i myslniki" }), {
+    if (!slug || !/^[a-z0-9-]+$/.test(slug)) {
+      return new Response(JSON.stringify({ error: "Slug jest wymagany i moze zawierac tylko male litery, cyfry i myslniki" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });
@@ -69,9 +64,6 @@ serve(async (req) => {
     }
 
     const path = `content/blog/${slug}.md`;
-    const date = new Date().toISOString().split("T")[0];
-    const fileContent = `---\ntitle: ${title}\ndate: ${date}\nexcerpt: ${excerpt || ""}\n---\n\n${content}\n`;
-
     const githubHeaders = {
       Authorization: `Bearer ${githubToken}`,
       Accept: "application/vnd.github+json",
@@ -86,6 +78,40 @@ serve(async (req) => {
       const existingData = await existing.json();
       sha = existingData.sha;
     }
+
+    if (action === "delete") {
+      if (!sha) {
+        return new Response(JSON.stringify({ error: "Wpis nie istnieje" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 404,
+        });
+      }
+      const deleteResponse = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
+        method: "DELETE",
+        headers: githubHeaders,
+        body: JSON.stringify({ message: `Blog: usunieto wpis "${slug}"`, sha }),
+      });
+      if (!deleteResponse.ok) {
+        const errorData = await deleteResponse.json();
+        console.error("GitHub API error:", errorData);
+        throw new Error(`GitHub API returned an error: ${deleteResponse.status} - ${JSON.stringify(errorData)}`);
+      }
+      return new Response(JSON.stringify({ success: true, deleted: path }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    const { title, excerpt, content, date: providedDate } = body;
+    if (!title || !content) {
+      return new Response(JSON.stringify({ error: "title i content sa wymagane" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+
+    const date = providedDate || new Date().toISOString().split("T")[0];
+    const fileContent = `---\ntitle: ${title}\ndate: ${date}\nexcerpt: ${excerpt || ""}\n---\n\n${content}\n`;
 
     const putResponse = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
       method: "PUT",
