@@ -10,6 +10,9 @@ Problem w tym, że gotowe narzędzia do tego (Promethease już nie działa, inne
 
 Więc zbudowałem własne narzędzie. Założenia były proste:
 
+<img src="https://nkwowvytmmssblimxeko.supabase.co/storage/v1/object/public/blog-images/1784728506608-xll4uqtnps.png" alt="625117825-2506f16e-ed3f-44cf-baea-447276493dbe.png" width="600" />
+
+
 Wszystko lokalnie. Zero wysyłania danych gdziekolwiek. Analiza działa offline, na Twoim komputerze.
 Tylko to, co potwierdzone w literaturze. Każdy wariant w bazie ma przypisaną siłę dowodów — nie miesza się dobrze zbadanego genu ryzyka zakrzepicy z ciekawostką o kolorze oczu, którą traktuje się z taką samą powagą.
 Dwa raporty, bo to nie jest ta sama grupa odbiorców. Szczegółowy — z nazwami genów, źródłami, dla kogoś kto chce zweryfikować każdy wynik. I prosty — bez żargonu, w dużej czcionce, napisany tak, żeby realnie zachęcić do zmiany nawyku, a nie tylko postraszyć diagnozą, której i tak nikt nie postawi na podstawie samego DNA.
