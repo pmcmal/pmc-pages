@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { jsonrepair } from "npm:jsonrepair@3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -76,16 +77,21 @@ serve(async (req) => {
     const aiResponseContent = data.choices[0].message.content;
 
     let parsedResponse;
+    const jsonCandidate = extractJson(aiResponseContent);
     try {
-      parsedResponse = JSON.parse(extractJson(aiResponseContent));
-    } catch (e) {
-      console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-      parsedResponse = {
-        projectIdea: aiResponseContent,
-        componentsNeeded: [],
-        exampleCode: "",
-        disclaimer: "Przepraszam, nie udało mi się sformułować pomysłu na projekt w oczekiwanym formacie. Proszę dokładnie sprawdzić wygenerowany tekst. Pamiętaj, że to jest tylko pomysł i wymaga dalszego planowania.",
-      };
+      parsedResponse = JSON.parse(jsonCandidate);
+    } catch {
+      try {
+        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
+      } catch (e) {
+        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
+        parsedResponse = {
+          projectIdea: aiResponseContent,
+          componentsNeeded: [],
+          exampleCode: "",
+          disclaimer: "Przepraszam, nie udało mi się sformułować pomysłu na projekt w oczekiwanym formacie. Proszę dokładnie sprawdzić wygenerowany tekst. Pamiętaj, że to jest tylko pomysł i wymaga dalszego planowania.",
+        };
+      }
     }
 
     return new Response(JSON.stringify(parsedResponse), {

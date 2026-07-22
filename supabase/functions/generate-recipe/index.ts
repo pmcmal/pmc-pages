@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { jsonrepair } from "npm:jsonrepair@3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -67,15 +68,19 @@ serve(async (req) => {
     const aiResponseContent = data.choices[0].message.content;
 
     let parsedResponse;
+    const jsonCandidate = extractJson(aiResponseContent);
     try {
-      parsedResponse = JSON.parse(extractJson(aiResponseContent));
-    } catch (e) {
-      console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-      // Jeśli parsowanie się nie powiedzie, ustaw conversionTable na pusty ciąg
-      parsedResponse = {
-        recipeText: aiResponseContent,
-        conversionTable: "", // Ustawiamy na pusty ciąg
-      };
+      parsedResponse = JSON.parse(jsonCandidate);
+    } catch {
+      try {
+        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
+      } catch (e) {
+        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
+        parsedResponse = {
+          recipeText: aiResponseContent,
+          conversionTable: "",
+        };
+      }
     }
 
     return new Response(JSON.stringify(parsedResponse), {

@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { jsonrepair } from "npm:jsonrepair@3";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,15 +70,19 @@ serve(async (req) => {
 
     // Attempt to parse the response as JSON
     let parsedResponse;
+    const jsonCandidate = extractJson(aiResponseContent);
     try {
-      parsedResponse = JSON.parse(extractJson(aiResponseContent));
-    } catch (e) {
-      console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-      // If parsing fails, assume the entire text is the script and provide a generic explanation
-      parsedResponse = {
-        script: aiResponseContent,
-        explanation: "Nie udało się poprawnie przetworzyć odpowiedzi AI. Proszę dokładnie sprawdzić wygenerowany skrypt.",
-      };
+      parsedResponse = JSON.parse(jsonCandidate);
+    } catch {
+      try {
+        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
+      } catch (e) {
+        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
+        parsedResponse = {
+          script: aiResponseContent,
+          explanation: "Nie udało się poprawnie przetworzyć odpowiedzi AI. Proszę dokładnie sprawdzić wygenerowany skrypt.",
+        };
+      }
     }
 
     return new Response(JSON.stringify(parsedResponse), {
