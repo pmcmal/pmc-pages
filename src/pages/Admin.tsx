@@ -32,31 +32,38 @@ const slugify = (title: string) =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
 
-const IDLE_LOGOUT_MS = 5 * 60 * 1000;
+const IDLE_LOGOUT_MS = 10 * 60 * 1000;
+const IDLE_CHECK_INTERVAL_MS = 15 * 1000;
 
-// Wylogowuje po 5 min bez ruchu myszki/klawiatury - panel admina jest publicznie
+// Wylogowuje po 10 min bez ruchu myszki/klawiatury - panel admina jest publicznie
 // dostepny pod znanym adresem, wiec zapomniana otwarta sesja jest ryzykiem.
+// Sprawdzanie realnego uplywu czasu (Date.now()) w interwale zamiast pojedynczego
+// dlugiego setTimeout - przegladarki mocno tortluja timery na kartach w tle,
+// wiec sam setTimeout ustawiony na 10 min potrafi nie odpalic sie na czas.
 function useIdleLogout() {
   useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-
-    const logout = () => {
-      supabase.auth.signOut();
-      toast.info("Wylogowano automatycznie po 5 minutach bezczynności.");
+    let lastActivity = Date.now();
+    const markActivity = () => {
+      lastActivity = Date.now();
     };
 
-    const resetTimer = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(logout, IDLE_LOGOUT_MS);
+    const checkIdle = () => {
+      if (Date.now() - lastActivity >= IDLE_LOGOUT_MS) {
+        supabase.auth.signOut();
+        toast.info("Wylogowano automatycznie po 10 minutach bezczynności.");
+      }
     };
 
     const events = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"];
-    events.forEach((event) => window.addEventListener(event, resetTimer));
-    resetTimer();
+    events.forEach((event) => window.addEventListener(event, markActivity));
+    document.addEventListener("visibilitychange", markActivity);
+
+    const intervalId = setInterval(checkIdle, IDLE_CHECK_INTERVAL_MS);
 
     return () => {
-      clearTimeout(timeoutId);
-      events.forEach((event) => window.removeEventListener(event, resetTimer));
+      clearInterval(intervalId);
+      events.forEach((event) => window.removeEventListener(event, markActivity));
+      document.removeEventListener("visibilitychange", markActivity);
     };
   }, []);
 }
