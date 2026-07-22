@@ -1,0 +1,20 @@
+name: Keep Supabase Awake
+
+# Darmowy projekt Supabase usypia po 7 dniach bez ruchu. Ten workflow odpytuje
+# raz na kilka dni sam REST endpoint Supabase (bez wywolywania funkcji AI),
+# zeby projekt liczyl to jako aktywnosc i sie nie wstrzymywal.
+
+on:
+  schedule:
+    - cron: "0 6 */3 * *" # co ~3 dni o 6:00 UTC
+  workflow_dispatch: {}
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        run: |
+          curl -sf "https://nkwowvytmmssblimxeko.supabase.co/rest/v1/" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rd293dnl0bW1zc2JsaW14ZWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NzkxNDYsImV4cCI6MjA5OTI1NTE0Nn0.QUoNQngGmYnyswJwEv4S7XwmByEzK6jLt86-AZvNjKc" \
+            -o /dev/null -w "Supabase REST responded: %{http_code}\n"
