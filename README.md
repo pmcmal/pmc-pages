@@ -7,6 +7,9 @@
 ![Tailwind](https://img.shields.io/badge/Tailwind_CSS-3-06B6D4?logo=tailwindcss&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
+<img width="1103" height="737" alt="Zrzut ekranu 2026-07-22 144002" src="https://github.com/user-attachments/assets/fd74ec81-6598-4f86-a57e-5155084f7a66" />
+
+
 <details>
 <summary><strong>🇬🇧 English version</strong> (click to expand)</summary>
 
