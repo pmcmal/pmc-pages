@@ -5,7 +5,7 @@ import rehypeRaw from "rehype-raw";
 import { Button } from "@/components/ui/button";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
-import { getPostBySlug } from "@/lib/blog";
+import { getPostBySlug, autoLinkBareDomains } from "@/lib/blog";
 
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -38,7 +38,7 @@ const BlogPost = () => {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-8">{post.title}</h1>
           <div className="prose prose-gray dark:prose-invert max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-              {post.content}
+              {autoLinkBareDomains(post.content)}
             </ReactMarkdown>
           </div>
         </article>

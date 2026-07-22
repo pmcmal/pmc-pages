@@ -48,3 +48,14 @@ export function getAllPosts(): BlogPost[] {
 export function getPostBySlug(slug: string): BlogPost | undefined {
   return getAllPosts().find((p) => p.slug === slug);
 }
+
+// Dopisuje https:// przed golymi domenami typu "github.com/xxx" (bez protokolu),
+// zeby remark-gfm mogl je auto-zlinkowac - GFM z definicji linkuje tylko URL-e
+// zaczynajace sie od http(s):// albo www. Wymaga "/" po TLD, zeby nie lapac
+// skrotow typu "m.in." czy "np." (nigdy nie maja ukosnika po kropce).
+export function autoLinkBareDomains(text: string): string {
+  return text.replace(
+    /(?<!https?:\/\/)\b((?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s)"'<]+)/gi,
+    (match) => `https://${match}`,
+  );
+}

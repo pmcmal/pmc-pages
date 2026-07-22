@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { ResizableImage } from "@/components/ResizableImage";
 import { supabase } from "@/integrations/supabase/client";
-import { getAllPosts, type BlogPost } from "@/lib/blog";
+import { getAllPosts, autoLinkBareDomains, type BlogPost } from "@/lib/blog";
 
 // Podmienia width="N" w konkretnym tagu <img src="..."> na nowa wartosc (albo dodaje atrybut, jesli go nie ma)
 function updateImageWidthInMarkdown(markdown: string, src: string, newWidth: number): string {
@@ -427,7 +427,7 @@ const Editor = ({ session }: { session: Session }) => {
                   ),
                 }}
               >
-                {form.content || "*Podgląd treści pojawi się tutaj...*"}
+                {form.content ? autoLinkBareDomains(form.content) : "*Podgląd treści pojawi się tutaj...*"}
               </ReactMarkdown>
             </div>
           </div>
