@@ -11,10 +11,12 @@ import { ChefLogo } from "@/components/ChefLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter"; // Import nowego komponentu logo
 
+type ConversionTable = string | Record<string, unknown>;
+
 const RecipeGenerator = () => {
   const [prompt, setPrompt] = useState<string>("");
   const [generatedRecipe, setGeneratedRecipe] = useState<string>("");
-  const [conversionTable, setConversionTable] = useState<string>("");
+  const [conversionTable, setConversionTable] = useState<ConversionTable>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isSurpriseMeActive, setIsSurpriseMeActive] = useState<boolean>(false);
 
@@ -50,15 +52,8 @@ const RecipeGenerator = () => {
           toast.warning("AI zwróciło przepis jako obiekt. Został on przekonwertowany na tekst.");
         }
 
-        // Ensure conversionTable is a string
-        let conversionTable = data.conversionTable;
-        if (typeof conversionTable === 'object' && conversionTable !== null) {
-          conversionTable = JSON.stringify(conversionTable, null, 2); // Convert object to formatted JSON string
-          toast.warning("AI zwróciło tabelę przeliczników jako obiekt. Została ona przekonwertowana na tekst.");
-        }
-
         setGeneratedRecipe(recipeText || "");
-        setConversionTable(conversionTable || "");
+        setConversionTable(data.conversionTable || "");
         toast.success("Przepis został wygenerowany!");
       } else {
         toast.error("Nie otrzymano odpowiedzi od generatora przepisów.");
@@ -134,9 +129,24 @@ const RecipeGenerator = () => {
               </div>
 
               {conversionTable && (
-                <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-700 rounded-md text-sm text-green-800 dark:text-green-200 whitespace-pre-wrap">
-                  <Label className="font-semibold mb-1 block">Przeliczniki:</Label>
-                  {conversionTable}
+                <div className="mt-4 p-4 bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-700 rounded-md text-sm text-green-800 dark:text-green-200">
+                  <Label className="font-semibold mb-2 block">Przeliczniki:</Label>
+                  {typeof conversionTable === "string" ? (
+                    <p className="whitespace-pre-wrap">{conversionTable}</p>
+                  ) : (
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {Object.entries(conversionTable).map(([ingredient, units]) => (
+                        <div key={ingredient}>
+                          <span className="font-medium capitalize">{ingredient}:</span>{" "}
+                          {units && typeof units === "object"
+                            ? Object.entries(units as Record<string, unknown>)
+                                .map(([unit, amount]) => `1 ${unit} ≈ ${amount}${typeof amount === "number" ? " g" : ""}`)
+                                .join(", ")
+                            : String(units)}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
