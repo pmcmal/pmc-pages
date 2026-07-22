@@ -165,7 +165,7 @@ const ProjectGrid = ({ items }: { items: ProjectCard[] }) => {
 
 const Index = () => {
   const { theme, setTheme } = useTheme();
-  const [blogOpen, setBlogOpen] = useState(false);
+  const [blogOpen, setBlogOpen] = useState(true);
   const posts = getAllPosts();
 
   const toggleTheme = () => {
