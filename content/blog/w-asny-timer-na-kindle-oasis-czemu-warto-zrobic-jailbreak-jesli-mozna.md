@@ -21,4 +21,5 @@ Całość działa lokalnie, offline, bez żadnych kont ani chmury — dokładnie
 
 Czemu warto odblokować Kindle'a: bo wtedy to nie jest już tylko czytnik narzucony przez producenta, tylko mały, energooszczędny komputerek z ekranem, na którym da się zrobić dosłownie cokolwiek — timer, quizy do nauki (jak wspomniane KAnki/KWordle, na których się wzorowałem), dashboard, cokolwiek. E-ink + tydzień na baterii + zero powiadomień to kombinacja, której próżno szukać gdzie indziej.
 
-Kod jest open source, jakby ktoś chciał się pobawić albo dostosować pod swoją zmianę: github.com/pmcmal/kindle-work-timer
+Kod jest open source, jakby ktoś chciał się pobawić albo dostosować pod swoją zmianę: github.com/pmcmal/kindle-work-timer<img src="https://nkwowvytmmssblimxeko.supabase.co/storage/v1/object/public/blog-images/1784728409372-bz6cp5425u5.jpg" alt="625103575-5096d133-3f7e-4001-8945-e8457c5e304b.jpg" width="600" />
+
