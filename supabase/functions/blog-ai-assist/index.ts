@@ -1,9 +1,16 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
+const MAX_INSTRUCTION_LENGTH = 2000;
+
+function corsHeadersFor(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
 
 function getJwtRole(authHeader: string | null): string | null {
   if (!authHeader) return null;
@@ -21,6 +28,7 @@ function getJwtRole(authHeader: string | null): string | null {
 }
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -37,6 +45,12 @@ serve(async (req) => {
     const { instruction, content, title } = await req.json();
     if (!instruction || typeof instruction !== "string") {
       return new Response(JSON.stringify({ error: "instruction jest wymagana" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 400,
+      });
+    }
+    if (instruction.length > MAX_INSTRUCTION_LENGTH) {
+      return new Response(JSON.stringify({ error: `Instrukcja jest za długa (max ${MAX_INSTRUCTION_LENGTH} znaków).` }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 400,
       });

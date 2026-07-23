@@ -1,10 +1,17 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
+const MAX_FIELD_LENGTH = 300;
+
+function corsHeadersFor(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
+  return {
+    'Access-Control-Allow-Origin': allowOrigin,
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
+}
 
 // Niektore darmowe modele owijaja odpowiedz w blok markdown ```json ... ``` mimo instrukcji w promptcie
 function extractJson(text: string): string {
@@ -13,6 +20,7 @@ function extractJson(text: string): string {
 }
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -28,6 +36,12 @@ serve(async (req) => {
     } else {
       if (!genre || !character || !event) {
         return new Response(JSON.stringify({ error: "Genre, character, and event are required" }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400,
+        });
+      }
+      if (genre.length > MAX_FIELD_LENGTH || character.length > MAX_FIELD_LENGTH || event.length > MAX_FIELD_LENGTH) {
+        return new Response(JSON.stringify({ error: `Każde pole może mieć maks. ${MAX_FIELD_LENGTH} znaków.` }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 400,
         });
