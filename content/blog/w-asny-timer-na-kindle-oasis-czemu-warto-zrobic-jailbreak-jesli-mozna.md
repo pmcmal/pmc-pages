@@ -16,7 +16,7 @@ Kindle ma mechanizm na aplikacje webowe zwany Mesquite — bierze HTML, JS, CSS
 i opakuje to tak, żeby system widział to jako pełnoprawną apkę (ikona, pasek, 
 rejestracja w bazie).
 
-Zacząłem eksperymentować. Napisałem sobie timer do zmiany — od dawna go chciałem.
+Zacząłem eksperymentować. Napisałem sobie timer czasu pracy — od dawna go chciałem.
 Wpisujesz godzinę startu, aplikacja liczy 8 godzin do przodu i pokazuje na żywo 
 ile zostało.
 
