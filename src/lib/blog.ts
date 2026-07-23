@@ -53,9 +53,21 @@ export function getPostBySlug(slug: string): BlogPost | undefined {
 // zeby remark-gfm mogl je auto-zlinkowac - GFM z definicji linkuje tylko URL-e
 // zaczynajace sie od http(s):// albo www. Wymaga "/" po TLD, zeby nie lapac
 // skrotow typu "m.in." czy "np." (nigdy nie maja ukosnika po kropce).
+// Istniejace pelne URL-e (np. w <img src="https://xxx.supabase.co/...">) sa
+// najpierw wycinane w calosci i zostawiane bez zmian, zeby nie dopasowac
+// przypadkiem subdomeny w srodku juz gotowego linku.
 export function autoLinkBareDomains(text: string): string {
-  return text.replace(
-    /(?<!https?:\/\/)\b((?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s)"'<]+)/gi,
-    (match) => `https://${match}`,
-  );
+  const urlPattern = /https?:\/\/[^\s)"'<]+/gi;
+  const bareDomainPattern = /\b((?:[a-z0-9-]+\.)+[a-z]{2,}\/[^\s)"'<]+)/gi;
+  const addProtocol = (m: string) => `https://${m}`;
+
+  let result = "";
+  let lastIndex = 0;
+  for (const match of text.matchAll(urlPattern)) {
+    result += text.slice(lastIndex, match.index).replace(bareDomainPattern, addProtocol);
+    result += match[0];
+    lastIndex = match.index! + match[0].length;
+  }
+  result += text.slice(lastIndex).replace(bareDomainPattern, addProtocol);
+  return result;
 }
