@@ -2,6 +2,7 @@ import { Link, useParams } from "react-router-dom";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -10,15 +11,16 @@ import { getPostBySlug, autoLinkBareDomains } from "@/lib/blog";
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const post = slug ? getPostBySlug(slug) : undefined;
+  const { t } = useTranslation();
 
   if (!post) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         <SiteHomeButton />
         <div className="container mx-auto max-w-3xl px-4 py-16 text-center">
-          <h1 className="text-2xl font-bold mb-4">Nie znaleziono wpisu</h1>
+          <h1 className="text-2xl font-bold mb-4">{t("blog.notFoundTitle")}</h1>
           <Link to="/blog">
-            <Button>Wróć do bloga</Button>
+            <Button>{t("blog.backToBlog")}</Button>
           </Link>
         </div>
       </div>
@@ -30,7 +32,7 @@ const BlogPost = () => {
       <SiteHomeButton />
       <div className="container mx-auto max-w-3xl px-4 py-16">
         <Link to="/blog" className="text-sm text-gray-500 hover:text-gray-900 dark:hover:text-gray-100">
-          ← Blog
+          {t("blog.backLink")}
         </Link>
 
         <article className="mt-6">

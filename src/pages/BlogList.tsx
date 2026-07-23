@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
 import { getAllPosts } from "@/lib/blog";
 
 const BlogList = () => {
+  const { t } = useTranslation();
   const posts = getAllPosts();
 
   return (
@@ -11,14 +13,12 @@ const BlogList = () => {
       <SiteHomeButton />
       <div className="container mx-auto max-w-3xl px-4 py-16">
         <header className="mb-10">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Blog</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2">
-            Notatki o projektach i rzeczach, które robię poza tymi podstronami.
-          </p>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{t("blog.title")}</h1>
+          <p className="text-gray-500 dark:text-gray-400 mt-2">{t("blog.subtitle")}</p>
         </header>
 
         {posts.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">Brak wpisów jeszcze.</p>
+          <p className="text-gray-500 dark:text-gray-400">{t("blog.empty")}</p>
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
