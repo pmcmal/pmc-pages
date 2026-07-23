@@ -6,7 +6,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
-import { getPostBySlug, autoLinkBareDomains } from "@/lib/blog";
+import { getPostBySlug, getPostTranslation, autoLinkBareDomains } from "@/lib/blog";
 import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
 
 const BlogPost = () => {
@@ -16,6 +16,7 @@ const BlogPost = () => {
   const { title, content, isTranslating } = useTranslatedBlogFields(
     slug ?? "",
     post ? { title: post.title, excerpt: post.excerpt, content: post.content } : { title: "", excerpt: "", content: "" },
+    slug ? getPostTranslation(slug) : undefined,
   );
 
   if (!post) {
@@ -41,10 +42,13 @@ const BlogPost = () => {
         </Link>
 
         <article className="mt-6">
-          <div className="text-sm text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-2">
-            {post.date}
-            {isTranslating && <span className="italic">· translating…</span>}
-          </div>
+          {isTranslating && (
+            <div className="mb-4 px-4 py-2.5 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 text-sm text-blue-700 dark:text-blue-300 flex items-center gap-2">
+              <span className="inline-block w-3.5 h-3.5 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+              Translating this post to English (can take up to ~20s the first time)…
+            </div>
+          )}
+          <div className="text-sm text-gray-400 dark:text-gray-500 mb-2">{post.date}</div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-8">{title}</h1>
           <div className="prose prose-gray dark:prose-invert max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>

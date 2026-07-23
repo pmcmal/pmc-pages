@@ -23,14 +23,23 @@ import {
 } from "lucide-react";
 import { PMCLogo } from "@/components/PMCLogo";
 import { PageFooter } from "@/components/PageFooter";
-import { getAllPosts, type BlogPost } from "@/lib/blog";
+import { getAllPosts, getPostTranslation, type BlogPost } from "@/lib/blog";
 import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
 
 const BlogBarItem = ({ post }: { post: BlogPost }) => {
-  const { title } = useTranslatedBlogFields(post.slug, { title: post.title, excerpt: "", content: "" });
+  const { title, isTranslating } = useTranslatedBlogFields(
+    post.slug,
+    { title: post.title, excerpt: "", content: "" },
+    getPostTranslation(post.slug),
+  );
   return (
     <Link to={`/blog/${post.slug}`} className="block group">
-      <div className="text-xs text-gray-400 dark:text-gray-500">{post.date}</div>
+      <div className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-1.5">
+        {post.date}
+        {isTranslating && (
+          <span className="inline-block w-2.5 h-2.5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+        )}
+      </div>
       <div className="font-medium group-hover:underline">{title}</div>
     </Link>
   );

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 interface TranslatableFields {
@@ -7,17 +7,17 @@ interface TranslatableFields {
   content: string;
 }
 
-// Tlumaczy pola wpisu na zywo przez OpenRouter, gdy jezyk strony to EN.
-// Cache w pamieci (per slug+jezyk) zapobiega ponownemu tlumaczeniu tego samego
-// posta przy kazdym przejsciu miedzy stronami w tej samej sesji.
+// Tlumaczy pola wpisu, gdy jezyk strony to EN.
+// Jesli tlumaczenie zostalo juz kiedys wygenerowane i zacommitowane do repo
+// (staticTranslation, wczytane statycznie z bundla), uzywamy go od razu - zero
+// czekania. W przeciwnym razie wolamy edge function na zywo (i ona sama zapisze
+// wynik do repo, zeby kolejni odwiedzajacy dostali juz gotowa, statyczna wersje).
 const cache = new Map<string, TranslatableFields>();
 
-export function useTranslatedBlogFields(key: string, fields: TranslatableFields) {
+export function useTranslatedBlogFields(slug: string, fields: TranslatableFields, staticTranslation?: TranslatableFields) {
   const { i18n } = useTranslation();
   const [translated, setTranslated] = useState<TranslatableFields | null>(null);
   const [isTranslating, setIsTranslating] = useState(false);
-  const fieldsRef = useRef(fields);
-  fieldsRef.current = fields;
 
   useEffect(() => {
     if (i18n.language !== "en") {
@@ -25,7 +25,12 @@ export function useTranslatedBlogFields(key: string, fields: TranslatableFields)
       return;
     }
 
-    const cacheKey = `en:${key}`;
+    if (staticTranslation) {
+      setTranslated(staticTranslation);
+      return;
+    }
+
+    const cacheKey = `en:${slug}`;
     const cached = cache.get(cacheKey);
     if (cached) {
       setTranslated(cached);
@@ -35,7 +40,7 @@ export function useTranslatedBlogFields(key: string, fields: TranslatableFields)
     let cancelled = false;
     setIsTranslating(true);
     import("@/integrations/supabase/client")
-      .then(({ supabase }) => supabase.functions.invoke("translate-blog-post", { body: fieldsRef.current }))
+      .then(({ supabase }) => supabase.functions.invoke("translate-blog-post", { body: { slug } }))
       .then(({ data, error }) => {
         if (cancelled) return;
         if (error || data?.error) {
@@ -52,7 +57,7 @@ export function useTranslatedBlogFields(key: string, fields: TranslatableFields)
     return () => {
       cancelled = true;
     };
-  }, [i18n.language, key]);
+  }, [i18n.language, slug, staticTranslation]);
 
   return {
     title: translated?.title ?? fields.title,

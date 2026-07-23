@@ -24,29 +24,55 @@ function parseFrontmatter(raw: string): { data: Record<string, string>; content:
   return { data, content: content.trim() };
 }
 
+// "*.md" w Vite glob dopasowuje tez "*.en.md" (kropka nie jest specjalna), wiec
+// tlumaczenia wykluczamy jawnie w getAllPosts, a czytamy je osobno w getPostTranslation.
 const modules = import.meta.glob("/content/blog/*.md", {
   query: "?raw",
   import: "default",
   eager: true,
 }) as Record<string, string>;
 
+const translationModules = import.meta.glob("/content/blog/*.en.md", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+}) as Record<string, string>;
+
 export function getAllPosts(): BlogPost[] {
-  const posts = Object.entries(modules).map(([path, raw]) => {
-    const slug = path.split("/").pop()!.replace(/\.md$/, "");
-    const { data, content } = parseFrontmatter(raw);
-    return {
-      slug,
-      title: data.title || slug,
-      date: data.date || "",
-      excerpt: data.excerpt || "",
-      content,
-    };
-  });
+  const posts = Object.entries(modules)
+    .filter(([path]) => !path.endsWith(".en.md"))
+    .map(([path, raw]) => {
+      const slug = path.split("/").pop()!.replace(/\.md$/, "");
+      const { data, content } = parseFrontmatter(raw);
+      return {
+        slug,
+        title: data.title || slug,
+        date: data.date || "",
+        excerpt: data.excerpt || "",
+        content,
+      };
+    });
   return posts.sort((a, b) => (a.date < b.date ? 1 : -1));
 }
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
   return getAllPosts().find((p) => p.slug === slug);
+}
+
+// Statyczne tlumaczenie EN, jesli zostalo juz kiedys wygenerowane i zacommitowane
+// (patrz translate-blog-post) - zero API call, wczytane od razu z bundla.
+export function getPostTranslation(slug: string): BlogPost | undefined {
+  const path = `/content/blog/${slug}.en.md`;
+  const raw = translationModules[path];
+  if (!raw) return undefined;
+  const { data, content } = parseFrontmatter(raw);
+  return {
+    slug,
+    title: data.title || slug,
+    date: data.date || "",
+    excerpt: data.excerpt || "",
+    content,
+  };
 }
 
 // Dopisuje https:// przed golymi domenami typu "github.com/xxx" (bez protokolu),
