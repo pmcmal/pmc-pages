@@ -1,25 +1,35 @@
 ---
-title: Własny timer na Kindle Oasis (czemu warto zrobić jailbreak jeśli można)
+title: Własny timer na Kindle Oasis (czemu warto zrobić jailbreak jeśli jeszcze możesz)
 date: 2026-07-22
 excerpt: Jak zrobiłem swój własny timer na Kindle'u (i czemu warto go odblokować)
 ---
 
-Miałem prosty problem: w pracy chciałem widzieć, ile mi zostało do końca zmiany, bez odpalania telefonu i bez powiadomień, które przy okazji zawsze mnie rozpraszają na 20 minut. E-ink Kindle'a wydawał się idealny — nic nie miga, bateria trzyma tygodniami, ekran czytelny w każdym świetle. Jedyny problem: to czytnik, a nie kalkulator zmian.
+Zawsze lubiłem grzebać w swoim sprzęcie — Linux, kod, małe projekty.
+Więc kiedy przyszło do Kindle'a, nie mogłem się oprzeć.
 
-Rozwiązanie: odblokowany Kindle (jailbreak) daje dostęp do systemu pod spodem i pozwala instalować własne aplikacje obok czytnika e-booków. Amazon oficjalnie tego nie przewiduje, ale społeczność (polecam kindlemodding.org) rozpracowała to od dawna — na Oasisie 10. generacji, na którym testowałem, działa to bez problemu.
+Chciałem czytać PDF-y i EPUB-y bez ograniczeń. Jailbreak Kindle'a daje dostęp 
+do systemu — możesz instalować własne aplikacje obok czytnika. 
+Społeczność (kindlemodding.org) rozpracowała to od lat, na Oasisie 10. gen działa bez problemu.
 
-Jak to zbudowałem:
-Kindle ma swój mechanizm na apki webowe zwany Mesquite — w skrócie: strona HTML/JS/CSS opakowana tak, żeby system traktował ją jak pełnoprawną aplikację (własna ikona, własny pasek na górze, można ją "zarejestrować" w bazie urządzenia). Więc moja appka to zwykły index.html + main.js + main.css — wpisujesz godzinę startu zmiany, appka liczy 8h do przodu i pokazuje na żywo ile zostało (albo "koniec, możesz iść!" 🙂).
+Jak to działa:
+Kindle ma mechanizm na aplikacje webowe zwany Mesquite — bierze HTML, JS, CSS 
+i opakuje to tak, żeby system widział to jako pełnoprawną apkę (ikona, pasek, 
+rejestracja w bazie).
 
-Do tego mały skrypt shellowy, który przy każdym uruchomieniu:
+Zacząłem eksperymentować. Napisałem sobie timer do zmiany — od dawna go chciałem.
+Wpisujesz godzinę startu, aplikacja liczy 8 godzin do przodu i pokazuje na żywo 
+ile zostało.
 
-kopiuje appkę do świeżego, ostemplowanego czasem folderu (żeby WebKit na Kindle'u nie serwował starej wersji z cache — koszmar przy iterowaniu),
-rejestruje ją w bazie appreg.db przez sqlite3,
-sprząta stare kopie,
-i od razu odpala apkę przez lipc-set-prop.
-Całość działa lokalnie, offline, bez żadnych kont ani chmury — dokładnie tak, jak chciałem.
+Do tego shell script, który:
+- kopuje appkę do nowego folderu (żeby WebKit nie serwował starej z cache)
+- rejestruje ją w bazie appreg.db
+- sprząta stare kopie
+- odpala ją
 
-Czemu warto odblokować Kindle'a: bo wtedy to nie jest już tylko czytnik narzucony przez producenta, tylko mały, energooszczędny komputerek z ekranem, na którym da się zrobić dosłownie cokolwiek — timer, quizy do nauki (jak wspomniane KAnki/KWordle, na których się wzorowałem), dashboard, cokolwiek. E-ink + tydzień na baterii + zero powiadomień to kombinacja, której próżno szukać gdzie indziej.
+Całość działa offline, bez konta, bez chmury. Ekran e-ink, tydzień baterii, 
+zero powiadomień — dokładnie to chciałem mieć.
+
+Czy będę go używać na co dzień? Nie wiem. Ale pokazałem sobie, że się da.
 
 Kod jest open source, jakby ktoś chciał się pobawić albo dostosować pod swoją zmianę: github.com/pmcmal/kindle-work-timer<img src="https://nkwowvytmmssblimxeko.supabase.co/storage/v1/object/public/blog-images/1784728409372-bz6cp5425u5.jpg" alt="625103575-5096d133-3f7e-4001-8945-e8457c5e304b.jpg" width="600" />
-
+#Kindle #Linux #OpenSource #DIY
