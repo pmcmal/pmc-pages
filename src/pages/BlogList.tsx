@@ -2,7 +2,27 @@ import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
-import { getAllPosts } from "@/lib/blog";
+import { getAllPosts, type BlogPost } from "@/lib/blog";
+import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
+
+const BlogListItem = ({ post }: { post: BlogPost }) => {
+  const { title, excerpt } = useTranslatedBlogFields(post.slug, {
+    title: post.title,
+    excerpt: post.excerpt,
+    content: "",
+  });
+
+  return (
+    <Link
+      to={`/blog/${post.slug}`}
+      className="block p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-md transition-all"
+    >
+      <div className="text-sm text-gray-400 dark:text-gray-500 mb-1">{post.date}</div>
+      <h2 className="text-xl font-semibold mb-1">{title}</h2>
+      <p className="text-gray-500 dark:text-gray-400">{excerpt}</p>
+    </Link>
+  );
+};
 
 const BlogList = () => {
   const { t } = useTranslation();
@@ -22,15 +42,7 @@ const BlogList = () => {
         ) : (
           <div className="space-y-4">
             {posts.map((post) => (
-              <Link
-                key={post.slug}
-                to={`/blog/${post.slug}`}
-                className="block p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 hover:border-gray-300 dark:hover:border-gray-700 hover:shadow-md transition-all"
-              >
-                <div className="text-sm text-gray-400 dark:text-gray-500 mb-1">{post.date}</div>
-                <h2 className="text-xl font-semibold mb-1">{post.title}</h2>
-                <p className="text-gray-500 dark:text-gray-400">{post.excerpt}</p>
-              </Link>
+              <BlogListItem key={post.slug} post={post} />
             ))}
           </div>
         )}

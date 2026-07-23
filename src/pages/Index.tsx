@@ -23,7 +23,18 @@ import {
 } from "lucide-react";
 import { PMCLogo } from "@/components/PMCLogo";
 import { PageFooter } from "@/components/PageFooter";
-import { getAllPosts } from "@/lib/blog";
+import { getAllPosts, type BlogPost } from "@/lib/blog";
+import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
+
+const BlogBarItem = ({ post }: { post: BlogPost }) => {
+  const { title } = useTranslatedBlogFields(post.slug, { title: post.title, excerpt: "", content: "" });
+  return (
+    <Link to={`/blog/${post.slug}`} className="block group">
+      <div className="text-xs text-gray-400 dark:text-gray-500">{post.date}</div>
+      <div className="font-medium group-hover:underline">{title}</div>
+    </Link>
+  );
+};
 
 interface ProjectMeta {
   key: string;
@@ -173,10 +184,7 @@ const Index = () => {
               ) : (
                 <div className="space-y-3">
                   {posts.slice(0, 3).map((post) => (
-                    <Link key={post.slug} to={`/blog/${post.slug}`} className="block group">
-                      <div className="text-xs text-gray-400 dark:text-gray-500">{post.date}</div>
-                      <div className="font-medium group-hover:underline">{post.title}</div>
-                    </Link>
+                    <BlogBarItem key={post.slug} post={post} />
                   ))}
                 </div>
               )}

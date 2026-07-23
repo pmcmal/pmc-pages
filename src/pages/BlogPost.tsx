@@ -7,11 +7,16 @@ import { Button } from "@/components/ui/button";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
 import { getPostBySlug, autoLinkBareDomains } from "@/lib/blog";
+import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
 
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
   const post = slug ? getPostBySlug(slug) : undefined;
   const { t } = useTranslation();
+  const { title, content, isTranslating } = useTranslatedBlogFields(
+    slug ?? "",
+    post ? { title: post.title, excerpt: post.excerpt, content: post.content } : { title: "", excerpt: "", content: "" },
+  );
 
   if (!post) {
     return (
@@ -36,11 +41,14 @@ const BlogPost = () => {
         </Link>
 
         <article className="mt-6">
-          <div className="text-sm text-gray-400 dark:text-gray-500 mb-2">{post.date}</div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-8">{post.title}</h1>
+          <div className="text-sm text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-2">
+            {post.date}
+            {isTranslating && <span className="italic">· translating…</span>}
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-8">{title}</h1>
           <div className="prose prose-gray dark:prose-invert max-w-none">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
-              {autoLinkBareDomains(post.content)}
+              {autoLinkBareDomains(content)}
             </ReactMarkdown>
           </div>
         </article>
