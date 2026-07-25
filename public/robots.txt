@@ -2,23 +2,33 @@ User-agent: Googlebot
 Allow: /
 Disallow: /admin
 Disallow: /lyrics-finder
+Disallow: /mario-platformer
+Disallow: /cv-generator
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
 Disallow: /lyrics-finder
+Disallow: /mario-platformer
+Disallow: /cv-generator
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /admin
 Disallow: /lyrics-finder
+Disallow: /mario-platformer
+Disallow: /cv-generator
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /admin
 Disallow: /lyrics-finder
+Disallow: /mario-platformer
+Disallow: /cv-generator
 
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /lyrics-finder
+Disallow: /mario-platformer
+Disallow: /cv-generator

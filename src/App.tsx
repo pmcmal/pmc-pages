@@ -21,6 +21,8 @@ const BlogList = lazy(() => import("./pages/BlogList"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Admin = lazy(() => import("./pages/Admin"));
 const LyricsFinder = lazy(() => import("./pages/LyricsFinder"));
+const MarioPlatformer = lazy(() => import("./pages/MarioPlatformer"));
+const CVGenerator = lazy(() => import("./pages/CVGenerator"));
 
 const queryClient = new QueryClient();
 
@@ -48,6 +50,8 @@ const App = () => (
               <Route path="/admin" element={<Admin />} />
               {/* Piaskownica: strony gotowe technicznie, jeszcze niepromowane na strone glowna - patrz src/lib/sandbox-apps.ts */}
               <Route path="/lyrics-finder" element={<LyricsFinder />} />
+              <Route path="/mario-platformer" element={<MarioPlatformer />} />
+              <Route path="/cv-generator" element={<CVGenerator />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
