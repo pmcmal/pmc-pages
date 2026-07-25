@@ -1,8 +1,14 @@
 name: Keep Supabase Awake
 
 # Darmowy projekt Supabase usypia po 7 dniach bez ruchu. Ten workflow odpytuje
-# raz na kilka dni sam REST endpoint Supabase (bez wywolywania funkcji AI),
-# zeby projekt liczyl to jako aktywnosc i sie nie wstrzymywal.
+# raz na kilka dni edge function (prawdziwe wywolanie, liczy sie jako aktywnosc),
+# zeby projekt sie nie wstrzymywal.
+#
+# Uwaga: bezposrednie pingowanie golego /rest/v1/ przestalo dzialac z kluczem anon
+# ("Only the service_role API key can be used for this endpoint") - to nie byl
+# problem z kluczem ani z uspionym projektem, tylko z metoda pingowania. Wywolanie
+# istniejacej edge function dziala niezawodnie i jest bardziej wiarygodnym sygnalem
+# aktywnosci niz gole zapytanie do schema introspection.
 
 on:
   schedule:
@@ -13,8 +19,20 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase REST API
+      - name: Ping Supabase Edge Function
         run: |
-          curl -sf "https://nkwowvytmmssblimxeko.supabase.co/rest/v1/" \
-            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rd293dnl0bW1zc2JsaW14ZWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NzkxNDYsImV4cCI6MjA5OTI1NTE0Nn0.QUoNQngGmYnyswJwEv4S7XwmByEzK6jLt86-AZvNjKc" \
-            -o /dev/null -w "Supabase REST responded: %{http_code}\n"
+          STATUS=$(curl -s -o /tmp/response.txt -w "%{http_code}" -X POST \
+            "https://nkwowvytmmssblimxeko.supabase.co/functions/v1/get-lyrics" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"artist":"Queen","title":"Bohemian Rhapsody"}')
+          echo "Supabase Edge Function responded: $STATUS"
+          cat /tmp/response.txt
+          echo
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 300 ]; then
+            echo "::error::Unexpected status code from edge function: $STATUS"
+            exit 1
+          fi
+        env:
+          SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5rd293dnl0bW1zc2JsaW14ZWtvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NzkxNDYsImV4cCI6MjA5OTI1NTE0Nn0.QUoNQngGmYnyswJwEv4S7XwmByEzK6jLt86-AZvNjKc"
