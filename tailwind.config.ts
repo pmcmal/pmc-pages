@@ -23,6 +23,7 @@ export default {
     extend: {
       fontFamily: {
         courier: ['"Courier Prime"', 'monospace'],
+        winamp: ['"VT323"', 'monospace'],
       },
       colors: {
         border: "hsl(var(--border))",

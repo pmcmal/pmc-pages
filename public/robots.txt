@@ -1,19 +1,24 @@
 User-agent: Googlebot
 Allow: /
 Disallow: /admin
+Disallow: /lyrics-finder
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
+Disallow: /lyrics-finder
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /admin
+Disallow: /lyrics-finder
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /admin
+Disallow: /lyrics-finder
 
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /lyrics-finder

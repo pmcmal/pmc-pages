@@ -12,6 +12,7 @@ import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { ResizableImage } from "@/components/ResizableImage";
 import { supabase } from "@/integrations/supabase/client";
 import { getAllPosts, autoLinkBareDomains, type BlogPost } from "@/lib/blog";
+import { sandboxApps } from "@/lib/sandbox-apps";
 
 // Podmienia width="N" w konkretnym tagu <img src="..."> na nowa wartosc (albo dodaje atrybut, jesli go nie ma)
 function updateImageWidthInMarkdown(markdown: string, src: string, newWidth: number): string {
@@ -258,6 +259,32 @@ const Editor = ({ session }: { session: Session }) => {
             Wyloguj
           </Button>
         </div>
+
+        {sandboxApps.length > 0 && (
+          <div className="mb-8 p-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold">🧪 Piaskownica ({sandboxApps.length})</h2>
+              <span className="text-xs text-amber-700 dark:text-amber-400">
+                Działają, ale nie ma ich jeszcze na stronie głównej — przetestuj i daj znać, jeśli mają wejść na stałe.
+              </span>
+            </div>
+            <div className="space-y-2">
+              {sandboxApps.map((app) => (
+                <a
+                  key={app.key}
+                  href={app.path}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block p-3 rounded-lg border border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-900 hover:border-amber-400 transition-colors"
+                >
+                  <div className="font-medium">{app.title}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">{app.description}</div>
+                  <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">{app.path} ↗</div>
+                </a>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mb-8 p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="flex items-center justify-between mb-3">
