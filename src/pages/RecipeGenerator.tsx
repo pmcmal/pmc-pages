@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 import { ChefLogo } from "@/components/ChefLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter"; // Import nowego komponentu logo
@@ -42,7 +43,8 @@ const RecipeGenerator = () => {
 
       if (error) {
         console.error("Error invoking Edge Function:", error);
-        toast.error(`Błąd podczas generowania przepisu: ${error.message}`);
+        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
+        toast.error(`Błąd podczas generowania przepisu: ${message}`);
         // Nie ustawiaj conversionTable na komunikat o błędzie
       } else if (data) {
         // Ensure recipeText is a string

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 
 const EQ_BARS = [0, 1, 2, 3, 4, 5, 6, 7];
 
@@ -28,7 +29,9 @@ const LyricsFinder = () => {
       const { data, error: fnError } = await supabase.functions.invoke("get-lyrics", {
         body: { artist: artist.trim(), title: title.trim() },
       });
-      if (fnError) throw fnError;
+      if (fnError) {
+        throw new Error(await getEdgeFunctionErrorMessage(fnError, "Nie udało się pobrać tekstu."));
+      }
       if (data?.error) throw new Error(data.error);
       setLyrics(data.lyrics);
       setNowPlaying(`${artist.trim().toUpperCase()} - ${title.trim().toUpperCase()}`);

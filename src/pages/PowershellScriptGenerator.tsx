@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 import { ScripterLogo } from "@/components/ScripterLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -40,7 +41,8 @@ const PowershellScriptGenerator = () => {
 
       if (error) {
         console.error("Error invoking Edge Function:", error);
-        toast.error(`Błąd podczas generowania skryptu: ${error.message}`);
+        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
+        toast.error(`Błąd podczas generowania skryptu: ${message}`);
         setExplanationText("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
       } else if (data) {
         // Assuming data is already parsed JSON from the Edge Function

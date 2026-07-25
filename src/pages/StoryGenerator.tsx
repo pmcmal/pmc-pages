@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 import { StorytellerLogo } from "@/components/StorytellerLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -47,7 +48,8 @@ const StoryGenerator = () => {
 
       if (error) {
         console.error("Error invoking Edge Function:", error);
-        toast.error(`Błąd podczas generowania opowiadania: ${error.message}`);
+        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
+        toast.error(`Błąd podczas generowania opowiadania: ${message}`);
         setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
       } else if (data) {
         setGeneratedStory(data.story || "");

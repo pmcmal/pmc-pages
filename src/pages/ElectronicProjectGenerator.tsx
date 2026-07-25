@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 import { CircuitLogo } from "@/components/CircuitLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -44,7 +45,8 @@ const ElectronicProjectGenerator = () => {
 
       if (error) {
         console.error("Error invoking Edge Function:", error);
-        toast.error(`Błąd podczas generowania pomysłu na projekt: ${error.message}`);
+        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
+        toast.error(`Błąd podczas generowania pomysłu na projekt: ${message}`);
         setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
       } else if (data) {
         setGeneratedProject(data.projectIdea || "");

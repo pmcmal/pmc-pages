@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { ResizableImage } from "@/components/ResizableImage";
 import { supabase } from "@/integrations/supabase/client";
+import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 import { getAllPosts, autoLinkBareDomains, type BlogPost } from "@/lib/blog";
 import { sandboxApps } from "@/lib/sandbox-apps";
 
@@ -155,7 +156,7 @@ const Editor = ({ session }: { session: Session }) => {
       const { data, error } = await supabase.functions.invoke("blog-ai-assist", {
         body: { instruction: instruction.trim(), content: form.content, title: form.title },
       });
-      if (error) throw error;
+      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
       if (data?.error) throw new Error(data.error);
       setAiResult(data.result || "");
     } catch (e) {
@@ -219,7 +220,7 @@ const Editor = ({ session }: { session: Session }) => {
           date: form.date || undefined,
         },
       });
-      if (error) throw error;
+      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
       if (data?.error) throw new Error(data.error);
       toast.success("Wpis opublikowany! Deploy na Vercelu ruszy automatycznie (ok. 1 min) — odśwież stronę po chwili, żeby zobaczyć go na liście.");
       resetForm();
@@ -237,7 +238,7 @@ const Editor = ({ session }: { session: Session }) => {
       const { data, error } = await supabase.functions.invoke("save-blog-post", {
         body: { slug: postSlug, action: "delete" },
       });
-      if (error) throw error;
+      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
       if (data?.error) throw new Error(data.error);
       toast.success("Wpis usunięty. Deploy na Vercelu ruszy automatycznie.");
       setPosts((prev) => prev.filter((p) => p.slug !== postSlug));

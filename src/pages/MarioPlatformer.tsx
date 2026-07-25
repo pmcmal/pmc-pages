@@ -7,9 +7,9 @@ import { SiteHomeButton } from '@/components/SiteHomeButton';
 
 const CANVAS_WIDTH = 900;
 const CANVAS_HEIGHT = 500;
-const GRAVITY = 0.6;
+const GRAVITY = 0.5;
 const JUMP_FORCE = -13;
-const MOVE_SPEED = 4;
+const MOVE_SPEED = 2.6;
 const GROUND_Y = 460;
 
 interface Platform {
@@ -78,9 +78,9 @@ const MarioPlatformer = () => {
 
     const initLevel = useCallback(() => {
         enemiesRef.current = [
-            { x: 180, y: GROUND_Y - 30, width: 30, height: 30, alive: true, direction: 1, patrolMin: 50, patrolMax: 240, speed: 1.2 },
-            { x: 450, y: GROUND_Y - 30, width: 30, height: 30, alive: true, direction: 1, patrolMin: 400, patrolMax: 620, speed: 1.5 },
-            { x: 620, y: 220, width: 30, height: 30, alive: true, direction: 1, patrolMin: 600, patrolMax: 670, speed: 1 },
+            { x: 180, y: GROUND_Y - 30, width: 30, height: 30, alive: true, direction: 1, patrolMin: 50, patrolMax: 240, speed: 0.8 },
+            { x: 450, y: GROUND_Y - 30, width: 30, height: 30, alive: true, direction: 1, patrolMin: 400, patrolMax: 620, speed: 1 },
+            { x: 620, y: 220, width: 30, height: 30, alive: true, direction: 1, patrolMin: 600, patrolMax: 670, speed: 0.65 },
         ];
         coinsRef.current = [
             { x: 190, y: 320, radius: 10, collected: false },

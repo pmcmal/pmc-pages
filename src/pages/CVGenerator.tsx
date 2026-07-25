@@ -20,6 +20,8 @@ import {
   GraduationCap,
   Sparkles,
   RotateCcw,
+  Sun,
+  Moon,
 } from "lucide-react";
 
 interface ExperienceItem {
@@ -49,6 +51,7 @@ interface CVData {
   experience: ExperienceItem[];
   education: EducationItem[];
   skills: string[];
+  templateMode: "light" | "dark";
 }
 
 const STORAGE_KEY = "pmc-cv-generator-data";
@@ -65,6 +68,45 @@ const emptyData: CVData = {
   experience: [],
   education: [],
   skills: [],
+  templateMode: "light",
+};
+
+const lightTheme = {
+  page: "bg-white text-slate-900",
+  sidebar: "bg-slate-50 text-slate-700 border-slate-200",
+  photoRing: "ring-white",
+  photoPlaceholder: "bg-slate-200 text-slate-400",
+  iconAccent: "text-blue-500",
+  contactText: "text-slate-700",
+  skillTag: "bg-white text-slate-700 border border-slate-200 shadow-sm",
+  sidebarHeading: "text-slate-400",
+  name: "text-slate-900",
+  jobTitle: "text-blue-600",
+  summary: "text-slate-700",
+  sectionHeading: "text-slate-400 border-slate-200",
+  itemTitle: "text-slate-900",
+  itemPeriod: "text-slate-500",
+  itemDesc: "text-slate-600",
+  placeholder: "text-gray-300",
+};
+
+const darkTheme = {
+  page: "bg-slate-900 text-slate-100",
+  sidebar: "bg-slate-950 text-slate-200 border-slate-800",
+  photoRing: "ring-slate-700",
+  photoPlaceholder: "bg-slate-800 text-slate-500",
+  iconAccent: "text-blue-400",
+  contactText: "text-slate-300",
+  skillTag: "bg-slate-800 text-slate-200 border border-slate-700",
+  sidebarHeading: "text-slate-500",
+  name: "text-white",
+  jobTitle: "text-blue-400",
+  summary: "text-slate-300",
+  sectionHeading: "text-slate-500 border-slate-700",
+  itemTitle: "text-slate-100",
+  itemPeriod: "text-slate-400",
+  itemDesc: "text-slate-400",
+  placeholder: "text-slate-600",
 };
 
 const CVGenerator = () => {
@@ -91,6 +133,8 @@ const CVGenerator = () => {
   const update = <K extends keyof CVData>(key: K, value: CVData[K]) => {
     setData((prev) => ({ ...prev, [key]: value }));
   };
+
+  const theme = data.templateMode === "dark" ? darkTheme : lightTheme;
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -422,59 +466,84 @@ const CVGenerator = () => {
 
           {/* Podglad / Wydruk */}
           <div className="print:w-full">
+            <div className="flex justify-center gap-2 mb-3 print:hidden">
+              <button
+                onClick={() => update("templateMode", "light")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                  data.templateMode === "light"
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <Sun className="w-3.5 h-3.5" /> Jasny
+              </button>
+              <button
+                onClick={() => update("templateMode", "dark")}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                  data.templateMode === "dark"
+                    ? "bg-slate-900 text-white border-slate-900"
+                    : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                <Moon className="w-3.5 h-3.5" /> Ciemny
+              </button>
+            </div>
+
             <div
               id="cv-preview"
-              className="bg-white text-gray-900 shadow-xl mx-auto print:shadow-none print:mx-0"
+              className={`${theme.page} shadow-xl mx-auto rounded-2xl overflow-hidden print:shadow-none print:mx-0 print:rounded-none`}
               style={{ width: "210mm", minHeight: "297mm", maxWidth: "100%" }}
             >
               <div className="grid grid-cols-[210px_1fr] print:grid-cols-[210px_1fr] min-h-full">
                 {/* Sidebar */}
-                <aside className="bg-slate-800 text-slate-100 p-6 flex flex-col items-center gap-6">
+                <aside className={`${theme.sidebar} border-r p-6 flex flex-col items-center gap-6`}>
                   {data.photo ? (
                     <img
                       src={data.photo}
                       alt="Zdjęcie profilowe"
-                      className="w-28 h-28 rounded-full object-cover border-4 border-slate-600"
+                      className={`w-28 h-28 rounded-full object-cover ring-4 ${theme.photoRing} shadow-lg`}
                     />
                   ) : (
-                    <div className="w-28 h-28 rounded-full bg-slate-700 flex items-center justify-center">
-                      <User className="w-12 h-12 text-slate-400" />
+                    <div className={`w-28 h-28 rounded-full ${theme.photoPlaceholder} ring-4 ${theme.photoRing} shadow-lg flex items-center justify-center`}>
+                      <User className="w-12 h-12" />
                     </div>
                   )}
 
                   <div className="w-full space-y-3 text-sm">
                     {data.email && (
                       <div className="flex items-start gap-2 min-w-0">
-                        <Mail className="w-4 h-4 shrink-0 mt-0.5 text-blue-300" />
-                        <span className="min-w-0 break-all">{data.email}</span>
+                        <Mail className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
+                        <span className={`min-w-0 break-all ${theme.contactText}`}>{data.email}</span>
                       </div>
                     )}
                     {data.phone && (
                       <div className="flex items-start gap-2 min-w-0">
-                        <Phone className="w-4 h-4 shrink-0 mt-0.5 text-blue-300" />
-                        <span className="min-w-0 break-words">{data.phone}</span>
+                        <Phone className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
+                        <span className={`min-w-0 break-words ${theme.contactText}`}>{data.phone}</span>
                       </div>
                     )}
                     {data.location && (
                       <div className="flex items-start gap-2 min-w-0">
-                        <MapPin className="w-4 h-4 shrink-0 mt-0.5 text-blue-300" />
-                        <span className="min-w-0 break-words">{data.location}</span>
+                        <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
+                        <span className={`min-w-0 break-words ${theme.contactText}`}>{data.location}</span>
                       </div>
                     )}
                     {data.website && (
                       <div className="flex items-start gap-2 min-w-0">
-                        <LinkIcon className="w-4 h-4 shrink-0 mt-0.5 text-blue-300" />
-                        <span className="min-w-0 break-all">{data.website}</span>
+                        <LinkIcon className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
+                        <span className={`min-w-0 break-all ${theme.contactText}`}>{data.website}</span>
                       </div>
                     )}
                   </div>
 
                   {data.skills.length > 0 && (
                     <div className="w-full">
-                      <h3 className="uppercase text-xs tracking-widest text-slate-400 mb-2">Umiejętności</h3>
+                      <h3 className={`uppercase text-xs tracking-widest mb-2 ${theme.sidebarHeading}`}>
+                        Umiejętności
+                      </h3>
                       <div className="flex flex-wrap gap-1.5">
                         {data.skills.map((skill) => (
-                          <span key={skill} className="bg-slate-700 text-slate-100 text-xs px-2 py-1 rounded">
+                          <span key={skill} className={`${theme.skillTag} text-xs px-2.5 py-1 rounded-full`}>
                             {skill}
                           </span>
                         ))}
@@ -485,36 +554,36 @@ const CVGenerator = () => {
 
                 {/* Main content */}
                 <main className="p-8">
-                  <h1 className="text-3xl font-bold text-slate-900">
-                    {data.fullName || <span className="text-gray-300 italic">Imię i nazwisko</span>}
+                  <h1 className={`text-3xl font-bold ${theme.name}`}>
+                    {data.fullName || <span className={`italic ${theme.placeholder}`}>Imię i nazwisko</span>}
                   </h1>
-                  <p className="text-lg text-blue-600 font-medium mt-1">
-                    {data.jobTitle || <span className="text-gray-300 italic">Stanowisko</span>}
+                  <p className={`text-lg font-medium mt-1 ${theme.jobTitle}`}>
+                    {data.jobTitle || <span className={`italic ${theme.placeholder}`}>Stanowisko</span>}
                   </p>
 
                   {data.summary && (
-                    <p className="mt-4 text-sm text-slate-700 leading-relaxed">{data.summary}</p>
+                    <p className={`mt-4 text-sm leading-relaxed ${theme.summary}`}>{data.summary}</p>
                   )}
 
                   {data.experience.length > 0 && (
                     <section className="mt-6">
-                      <h2 className="text-sm uppercase tracking-widest text-slate-400 font-semibold border-b pb-1 mb-3">
+                      <h2 className={`text-sm uppercase tracking-widest font-semibold border-b pb-1 mb-3 ${theme.sectionHeading}`}>
                         Doświadczenie zawodowe
                       </h2>
                       <div className="space-y-4">
                         {data.experience.map((item) => (
                           <div key={item.id}>
                             <div className="flex justify-between items-baseline flex-wrap gap-x-2">
-                              <span className="font-semibold text-slate-900">
+                              <span className={`font-semibold ${theme.itemTitle}`}>
                                 {item.position || "Stanowisko"}
                                 {item.company ? ` — ${item.company}` : ""}
                               </span>
                               {item.period && (
-                                <span className="text-xs text-slate-500 whitespace-nowrap">{item.period}</span>
+                                <span className={`text-xs whitespace-nowrap ${theme.itemPeriod}`}>{item.period}</span>
                               )}
                             </div>
                             {item.description && (
-                              <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">
+                              <p className={`text-sm mt-1 whitespace-pre-line ${theme.itemDesc}`}>
                                 {item.description}
                               </p>
                             )}
@@ -526,18 +595,18 @@ const CVGenerator = () => {
 
                   {data.education.length > 0 && (
                     <section className="mt-6">
-                      <h2 className="text-sm uppercase tracking-widest text-slate-400 font-semibold border-b pb-1 mb-3">
+                      <h2 className={`text-sm uppercase tracking-widest font-semibold border-b pb-1 mb-3 ${theme.sectionHeading}`}>
                         Wykształcenie
                       </h2>
                       <div className="space-y-3">
                         {data.education.map((item) => (
                           <div key={item.id} className="flex justify-between items-baseline flex-wrap gap-x-2">
-                            <span className="font-semibold text-slate-900">
+                            <span className={`font-semibold ${theme.itemTitle}`}>
                               {item.school || "Szkoła"}
                               {item.field ? ` — ${item.field}` : ""}
                             </span>
                             {item.period && (
-                              <span className="text-xs text-slate-500 whitespace-nowrap">{item.period}</span>
+                              <span className={`text-xs whitespace-nowrap ${theme.itemPeriod}`}>{item.period}</span>
                             )}
                           </div>
                         ))}
