@@ -50,10 +50,10 @@ interface CVData {
   experience: ExperienceItem[];
   education: EducationItem[];
   skills: string[];
-  templateMode: ThemeKey;
+  templateMode: TemplateKey;
 }
 
-type ThemeKey = "light" | "dark" | "navy" | "emerald" | "burgundy" | "graphite";
+type TemplateKey = "classic" | "dark" | "banner" | "elegant" | "minimal";
 
 const STORAGE_KEY = "pmc-cv-generator-data";
 
@@ -69,152 +69,234 @@ const emptyData: CVData = {
   experience: [],
   education: [],
   skills: [],
-  templateMode: "light",
+  templateMode: "classic",
 };
 
-interface CVTheme {
+type LayoutKind = "sidebar" | "banner" | "elegant" | "minimal";
+
+interface CVTemplate {
+  label: string;
+  swatch: string;
+  layout: LayoutKind;
   page: string;
-  sidebar: string;
-  photoRing: string;
-  photoPlaceholder: string;
-  iconAccent: string;
-  contactText: string;
-  skillTag: string;
-  sidebarHeading: string;
+  banner: string;
+  bannerMuted: string;
   name: string;
   jobTitle: string;
   summary: string;
   sectionHeading: string;
+  rule: string;
   itemTitle: string;
   itemPeriod: string;
   itemDesc: string;
   placeholder: string;
+  iconAccent: string;
+  contactText: string;
+  skillTag: string;
+  photoRing: string;
+  photoPlaceholder: string;
+  sidebar: string;
+  sidebarHeading: string;
 }
 
-// Klasy musza byc zapisane w calosci, a nie sklejane z kawalkow - inaczej
-// Tailwind ich nie wygeneruje, bo skanuje zrodlo tekstowo.
-const themes: Record<ThemeKey, CVTheme> = {
-  light: {
-    page: "bg-white text-slate-900",
-    sidebar: "bg-slate-50 text-slate-700 border-slate-200",
-    photoRing: "ring-white",
-    photoPlaceholder: "bg-slate-200 text-slate-400",
-    iconAccent: "text-blue-500",
-    contactText: "text-slate-700",
-    skillTag: "bg-white text-slate-700 border border-slate-200 shadow-sm",
-    sidebarHeading: "text-slate-400",
+// Klasy musza byc zapisane w calosci, a nie sklejane - Tailwind skanuje zrodlo
+// tekstowo i nazw budowanych w locie by nie wygenerowal.
+const templates: Record<TemplateKey, CVTemplate> = {
+  classic: {
+    label: "Klasyczny",
+    swatch: "bg-slate-300",
+    layout: "sidebar",
+    page: "bg-white text-slate-900 font-sans",
+    banner: "",
+    bannerMuted: "",
     name: "text-slate-900",
     jobTitle: "text-blue-600",
     summary: "text-slate-700",
-    sectionHeading: "text-slate-400 border-slate-200",
+    sectionHeading: "text-slate-400",
+    rule: "border-slate-200",
     itemTitle: "text-slate-900",
     itemPeriod: "text-slate-500",
     itemDesc: "text-slate-600",
     placeholder: "text-gray-300",
+    iconAccent: "text-blue-500",
+    contactText: "text-slate-700",
+    skillTag: "bg-white text-slate-700 border border-slate-200 shadow-sm",
+    photoRing: "ring-white",
+    photoPlaceholder: "bg-slate-200 text-slate-400",
+    sidebar: "bg-slate-50 text-slate-700 border-slate-200",
+    sidebarHeading: "text-slate-400",
   },
   dark: {
-    page: "bg-slate-900 text-slate-100",
-    sidebar: "bg-slate-950 text-slate-200 border-slate-800",
-    photoRing: "ring-slate-700",
-    photoPlaceholder: "bg-slate-800 text-slate-500",
-    iconAccent: "text-blue-400",
-    contactText: "text-slate-300",
-    skillTag: "bg-slate-800 text-slate-200 border border-slate-700",
-    sidebarHeading: "text-slate-500",
+    label: "Ciemny",
+    swatch: "bg-slate-900",
+    layout: "sidebar",
+    page: "bg-slate-900 text-slate-100 font-sans",
+    banner: "",
+    bannerMuted: "",
     name: "text-white",
     jobTitle: "text-blue-400",
     summary: "text-slate-300",
-    sectionHeading: "text-slate-500 border-slate-700",
+    sectionHeading: "text-slate-500",
+    rule: "border-slate-700",
     itemTitle: "text-slate-100",
     itemPeriod: "text-slate-400",
     itemDesc: "text-slate-400",
     placeholder: "text-slate-600",
+    iconAccent: "text-blue-400",
+    contactText: "text-slate-300",
+    skillTag: "bg-slate-800 text-slate-200 border border-slate-700",
+    photoRing: "ring-slate-700",
+    photoPlaceholder: "bg-slate-800 text-slate-500",
+    sidebar: "bg-slate-950 text-slate-200 border-slate-800",
+    sidebarHeading: "text-slate-500",
   },
-  // Ponizsze trzymaja biala strone i kolorowy tylko pasek boczny - uklad
-  // najczestszy w szablonach CV i najbezpieczniejszy na wydruku.
-  navy: {
-    page: "bg-white text-slate-900",
-    sidebar: "bg-blue-950 text-blue-100 border-blue-950",
-    photoRing: "ring-blue-800",
-    photoPlaceholder: "bg-blue-900 text-blue-400",
-    iconAccent: "text-blue-300",
-    contactText: "text-blue-100",
-    skillTag: "bg-white/10 text-white border border-white/20",
-    sidebarHeading: "text-blue-300",
-    name: "text-slate-900",
-    jobTitle: "text-blue-800",
+  // Pelnej szerokosci kolorowy naglowek, pod nim jedna kolumna - inna sylwetka
+  // strony niz pasek boczny, nie tylko inny kolor.
+  banner: {
+    label: "Nagłówek",
+    swatch: "bg-teal-700",
+    layout: "banner",
+    page: "bg-white text-slate-900 font-sans",
+    banner: "bg-teal-700 text-white",
+    bannerMuted: "text-teal-100",
+    name: "text-white",
+    jobTitle: "text-teal-100",
     summary: "text-slate-700",
-    sectionHeading: "text-slate-400 border-slate-200",
+    sectionHeading: "text-teal-700",
+    rule: "border-teal-200",
     itemTitle: "text-slate-900",
     itemPeriod: "text-slate-500",
     itemDesc: "text-slate-600",
-    placeholder: "text-gray-300",
+    placeholder: "text-white/50",
+    iconAccent: "text-teal-200",
+    contactText: "text-teal-50",
+    skillTag: "bg-teal-50 text-teal-800 border border-teal-200",
+    photoRing: "ring-white/30",
+    photoPlaceholder: "bg-teal-600 text-teal-200",
+    sidebar: "",
+    sidebarHeading: "",
   },
-  emerald: {
-    page: "bg-white text-slate-900",
-    sidebar: "bg-emerald-900 text-emerald-50 border-emerald-900",
-    photoRing: "ring-emerald-700",
-    photoPlaceholder: "bg-emerald-800 text-emerald-400",
-    iconAccent: "text-emerald-300",
-    contactText: "text-emerald-50",
-    skillTag: "bg-white/10 text-white border border-white/20",
-    sidebarHeading: "text-emerald-300",
-    name: "text-slate-900",
-    jobTitle: "text-emerald-800",
-    summary: "text-slate-700",
-    sectionHeading: "text-slate-400 border-slate-200",
-    itemTitle: "text-slate-900",
-    itemPeriod: "text-slate-500",
-    itemDesc: "text-slate-600",
-    placeholder: "text-gray-300",
+  // Szeryfowy, wysrodkowany, bez zdjecia i bez kolorow - uklad "papierowy".
+  elegant: {
+    label: "Elegancki",
+    swatch: "bg-amber-800",
+    layout: "elegant",
+    page: "bg-[#fdfcf8] text-stone-800 font-serif",
+    banner: "",
+    bannerMuted: "",
+    name: "text-stone-900",
+    jobTitle: "text-amber-800",
+    summary: "text-stone-700",
+    sectionHeading: "text-amber-800",
+    rule: "border-stone-300",
+    itemTitle: "text-stone-900",
+    itemPeriod: "text-stone-500",
+    itemDesc: "text-stone-600",
+    placeholder: "text-stone-300",
+    iconAccent: "text-amber-700",
+    contactText: "text-stone-600",
+    skillTag: "text-stone-700 border-b border-stone-300",
+    photoRing: "ring-stone-200",
+    photoPlaceholder: "bg-stone-100 text-stone-400",
+    sidebar: "",
+    sidebarHeading: "",
   },
-  burgundy: {
-    page: "bg-white text-slate-900",
-    sidebar: "bg-rose-950 text-rose-100 border-rose-950",
-    photoRing: "ring-rose-800",
-    photoPlaceholder: "bg-rose-900 text-rose-400",
-    iconAccent: "text-rose-300",
-    contactText: "text-rose-100",
-    skillTag: "bg-white/10 text-white border border-white/20",
-    sidebarHeading: "text-rose-300",
-    name: "text-slate-900",
-    jobTitle: "text-rose-800",
-    summary: "text-slate-700",
-    sectionHeading: "text-slate-400 border-slate-200",
-    itemTitle: "text-slate-900",
-    itemPeriod: "text-slate-500",
-    itemDesc: "text-slate-600",
-    placeholder: "text-gray-300",
-  },
-  graphite: {
-    page: "bg-white text-slate-900",
-    sidebar: "bg-zinc-800 text-zinc-100 border-zinc-800",
-    photoRing: "ring-zinc-600",
-    photoPlaceholder: "bg-zinc-700 text-zinc-400",
-    iconAccent: "text-amber-300",
-    contactText: "text-zinc-100",
-    skillTag: "bg-white/10 text-white border border-white/20",
-    sidebarHeading: "text-zinc-400",
-    name: "text-slate-900",
-    jobTitle: "text-zinc-700",
-    summary: "text-slate-700",
-    sectionHeading: "text-slate-400 border-slate-200",
-    itemTitle: "text-slate-900",
-    itemPeriod: "text-slate-500",
-    itemDesc: "text-slate-600",
-    placeholder: "text-gray-300",
+  // Zero kolorow i ozdobnikow, duzo swiatla - dla rekrutacji technicznej.
+  minimal: {
+    label: "Minimal",
+    swatch: "bg-white border border-slate-300",
+    layout: "minimal",
+    page: "bg-white text-neutral-900 font-sans",
+    banner: "",
+    bannerMuted: "",
+    name: "text-neutral-900",
+    jobTitle: "text-neutral-500",
+    summary: "text-neutral-700",
+    sectionHeading: "text-neutral-400",
+    rule: "border-neutral-200",
+    itemTitle: "text-neutral-900",
+    itemPeriod: "text-neutral-400",
+    itemDesc: "text-neutral-600",
+    placeholder: "text-neutral-300",
+    iconAccent: "text-neutral-400",
+    contactText: "text-neutral-600",
+    skillTag: "text-neutral-600",
+    photoRing: "ring-neutral-200",
+    photoPlaceholder: "bg-neutral-100 text-neutral-400",
+    sidebar: "",
+    sidebarHeading: "",
   },
 };
 
-// swatch to kolor kropki w wyborze motywu - pokazuje kolor paska bocznego
-const themeOptions: { key: ThemeKey; label: string; swatch: string }[] = [
-  { key: "light", label: "Jasny", swatch: "bg-slate-200" },
-  { key: "dark", label: "Ciemny", swatch: "bg-slate-900" },
-  { key: "navy", label: "Granatowy", swatch: "bg-blue-950" },
-  { key: "emerald", label: "Zielony", swatch: "bg-emerald-900" },
-  { key: "burgundy", label: "Bordowy", swatch: "bg-rose-950" },
-  { key: "graphite", label: "Grafitowy", swatch: "bg-zinc-800" },
-];
+const templateOptions = (Object.keys(templates) as TemplateKey[]).map((key) => ({
+  key,
+  label: templates[key].label,
+  swatch: templates[key].swatch,
+}));
+
+const contactEntries = (data: CVData) =>
+  [
+    { Icon: Mail, value: data.email },
+    { Icon: Phone, value: data.phone },
+    { Icon: MapPin, value: data.location },
+    { Icon: LinkIcon, value: data.website },
+  ].filter((entry) => entry.value);
+
+const Photo = ({ data, tpl, size }: { data: CVData; tpl: CVTemplate; size: string }) =>
+  data.photo ? (
+    <img
+      src={data.photo}
+      alt="Zdjęcie profilowe"
+      className={`${size} rounded-full object-cover ring-4 ${tpl.photoRing} shadow-lg`}
+    />
+  ) : (
+    <div
+      className={`${size} rounded-full ${tpl.photoPlaceholder} ring-4 ${tpl.photoRing} shadow-lg flex items-center justify-center`}
+    >
+      <User className="w-1/2 h-1/2" />
+    </div>
+  );
+
+const ExperienceBlock = ({ data, tpl, headingClass }: { data: CVData; tpl: CVTemplate; headingClass: string }) =>
+  data.experience.length === 0 ? null : (
+    <section className="mt-6">
+      <h2 className={headingClass}>Doświadczenie zawodowe</h2>
+      <div className="space-y-4">
+        {data.experience.map((item) => (
+          <div key={item.id}>
+            <div className="flex justify-between items-baseline flex-wrap gap-x-2">
+              <span className={`font-semibold ${tpl.itemTitle}`}>
+                {item.position || "Stanowisko"}
+                {item.company ? ` — ${item.company}` : ""}
+              </span>
+              {item.period && <span className={`text-xs whitespace-nowrap ${tpl.itemPeriod}`}>{item.period}</span>}
+            </div>
+            {item.description && (
+              <p className={`text-sm mt-1 whitespace-pre-line ${tpl.itemDesc}`}>{item.description}</p>
+            )}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+
+const EducationBlock = ({ data, tpl, headingClass }: { data: CVData; tpl: CVTemplate; headingClass: string }) =>
+  data.education.length === 0 ? null : (
+    <section className="mt-6">
+      <h2 className={headingClass}>Wykształcenie</h2>
+      <div className="space-y-3">
+        {data.education.map((item) => (
+          <div key={item.id} className="flex justify-between items-baseline flex-wrap gap-x-2">
+            <span className={`font-semibold ${tpl.itemTitle}`}>
+              {item.school || "Szkoła"}
+              {item.field ? ` — ${item.field}` : ""}
+            </span>
+            {item.period && <span className={`text-xs whitespace-nowrap ${tpl.itemPeriod}`}>{item.period}</span>}
+          </div>
+        ))}
+      </div>
+    </section>
+  );
 
 const CVGenerator = () => {
   const [data, setData] = useState<CVData>(emptyData);
@@ -242,7 +324,8 @@ const CVGenerator = () => {
   };
 
   // zapis z localStorage moze pochodzic sprzed dolozenia motywow
-  const theme = themes[data.templateMode] ?? themes.light;
+  // zapis z localStorage moze pochodzic sprzed przebudowy szablonow
+  const tpl = templates[data.templateMode] ?? templates.classic;
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -589,7 +672,7 @@ const CVGenerator = () => {
           {/* Podglad / Wydruk */}
           <div className="print:w-full">
             <div className="flex flex-wrap justify-center gap-2 mb-3 print:hidden">
-              {themeOptions.map((option) => (
+              {templateOptions.map((option) => (
                 <button
                   key={option.key}
                   onClick={() => update("templateMode", option.key)}
@@ -608,130 +691,194 @@ const CVGenerator = () => {
 
             <div
               id="cv-preview"
-              className={`${theme.page} shadow-xl mx-auto rounded-2xl overflow-hidden print:shadow-none print:mx-0 print:rounded-none`}
+              className={`${tpl.page} shadow-xl mx-auto rounded-2xl overflow-hidden print:shadow-none print:mx-0 print:rounded-none`}
               style={{ width: "210mm", minHeight: "297mm", maxWidth: "100%" }}
             >
-              <div className="grid grid-cols-[210px_1fr] print:grid-cols-[210px_1fr] min-h-full">
-                {/* Sidebar */}
-                <aside className={`${theme.sidebar} border-r p-6 flex flex-col items-center gap-6`}>
-                  {data.photo ? (
-                    <img
-                      src={data.photo}
-                      alt="Zdjęcie profilowe"
-                      className={`w-28 h-28 rounded-full object-cover ring-4 ${theme.photoRing} shadow-lg`}
-                    />
-                  ) : (
-                    <div className={`w-28 h-28 rounded-full ${theme.photoPlaceholder} ring-4 ${theme.photoRing} shadow-lg flex items-center justify-center`}>
-                      <User className="w-12 h-12" />
+              {tpl.layout === "sidebar" && (
+                <div className="grid grid-cols-[210px_1fr] print:grid-cols-[210px_1fr] min-h-full">
+                  <aside className={`${tpl.sidebar} border-r p-6 flex flex-col items-center gap-6`}>
+                    <Photo data={data} tpl={tpl} size="w-28 h-28" />
+                    <div className="w-full space-y-3 text-sm">
+                      {contactEntries(data).map(({ Icon, value }) => (
+                        <div key={value} className="flex items-start gap-2 min-w-0">
+                          <Icon className={`w-4 h-4 shrink-0 mt-0.5 ${tpl.iconAccent}`} />
+                          <span className={`min-w-0 break-all ${tpl.contactText}`}>{value}</span>
+                        </div>
+                      ))}
                     </div>
-                  )}
+                    {data.skills.length > 0 && (
+                      <div className="w-full">
+                        <h3 className={`uppercase text-xs tracking-widest mb-2 ${tpl.sidebarHeading}`}>Umiejętności</h3>
+                        <div className="flex flex-wrap gap-1.5">
+                          {data.skills.map((skill) => (
+                            <span key={skill} className={`${tpl.skillTag} text-xs px-2.5 py-1 rounded-full`}>
+                              {skill}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </aside>
+                  <main className="p-8">
+                    <h1 className={`text-3xl font-bold ${tpl.name}`}>
+                      {data.fullName || <span className={`italic ${tpl.placeholder}`}>Imię i nazwisko</span>}
+                    </h1>
+                    <p className={`text-lg font-medium mt-1 ${tpl.jobTitle}`}>
+                      {data.jobTitle || <span className={`italic ${tpl.placeholder}`}>Stanowisko</span>}
+                    </p>
+                    {data.summary && <p className={`mt-4 text-sm leading-relaxed ${tpl.summary}`}>{data.summary}</p>}
+                    <ExperienceBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-sm uppercase tracking-widest font-semibold border-b pb-1 mb-3 ${tpl.sectionHeading} ${tpl.rule}`}
+                    />
+                    <EducationBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-sm uppercase tracking-widest font-semibold border-b pb-1 mb-3 ${tpl.sectionHeading} ${tpl.rule}`}
+                    />
+                  </main>
+                </div>
+              )}
 
-                  <div className="w-full space-y-3 text-sm">
-                    {data.email && (
-                      <div className="flex items-start gap-2 min-w-0">
-                        <Mail className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
-                        <span className={`min-w-0 break-all ${theme.contactText}`}>{data.email}</span>
-                      </div>
-                    )}
-                    {data.phone && (
-                      <div className="flex items-start gap-2 min-w-0">
-                        <Phone className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
-                        <span className={`min-w-0 break-words ${theme.contactText}`}>{data.phone}</span>
-                      </div>
-                    )}
-                    {data.location && (
-                      <div className="flex items-start gap-2 min-w-0">
-                        <MapPin className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
-                        <span className={`min-w-0 break-words ${theme.contactText}`}>{data.location}</span>
-                      </div>
-                    )}
-                    {data.website && (
-                      <div className="flex items-start gap-2 min-w-0">
-                        <LinkIcon className={`w-4 h-4 shrink-0 mt-0.5 ${theme.iconAccent}`} />
-                        <span className={`min-w-0 break-all ${theme.contactText}`}>{data.website}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  {data.skills.length > 0 && (
-                    <div className="w-full">
-                      <h3 className={`uppercase text-xs tracking-widest mb-2 ${theme.sidebarHeading}`}>
-                        Umiejętności
-                      </h3>
-                      <div className="flex flex-wrap gap-1.5">
-                        {data.skills.map((skill) => (
-                          <span key={skill} className={`${theme.skillTag} text-xs px-2.5 py-1 rounded-full`}>
-                            {skill}
+              {tpl.layout === "banner" && (
+                <div className="min-h-full">
+                  <header className={`${tpl.banner} px-10 py-8 flex items-center gap-6`}>
+                    <Photo data={data} tpl={tpl} size="w-24 h-24 shrink-0" />
+                    <div className="min-w-0">
+                      <h1 className={`text-4xl font-bold tracking-tight ${tpl.name}`}>
+                        {data.fullName || <span className={`italic ${tpl.placeholder}`}>Imię i nazwisko</span>}
+                      </h1>
+                      <p className={`text-lg mt-1 ${tpl.jobTitle}`}>
+                        {data.jobTitle || <span className={`italic ${tpl.placeholder}`}>Stanowisko</span>}
+                      </p>
+                      <div className="flex flex-wrap gap-x-5 gap-y-1 mt-3 text-sm">
+                        {contactEntries(data).map(({ Icon, value }) => (
+                          <span key={value} className={`flex items-center gap-1.5 ${tpl.contactText}`}>
+                            <Icon className={`w-3.5 h-3.5 ${tpl.iconAccent}`} />
+                            {value}
                           </span>
                         ))}
                       </div>
                     </div>
-                  )}
-                </aside>
-
-                {/* Main content */}
-                <main className="p-8">
-                  <h1 className={`text-3xl font-bold ${theme.name}`}>
-                    {data.fullName || <span className={`italic ${theme.placeholder}`}>Imię i nazwisko</span>}
-                  </h1>
-                  <p className={`text-lg font-medium mt-1 ${theme.jobTitle}`}>
-                    {data.jobTitle || <span className={`italic ${theme.placeholder}`}>Stanowisko</span>}
-                  </p>
-
-                  {data.summary && (
-                    <p className={`mt-4 text-sm leading-relaxed ${theme.summary}`}>{data.summary}</p>
-                  )}
-
-                  {data.experience.length > 0 && (
-                    <section className="mt-6">
-                      <h2 className={`text-sm uppercase tracking-widest font-semibold border-b pb-1 mb-3 ${theme.sectionHeading}`}>
-                        Doświadczenie zawodowe
-                      </h2>
-                      <div className="space-y-4">
-                        {data.experience.map((item) => (
-                          <div key={item.id}>
-                            <div className="flex justify-between items-baseline flex-wrap gap-x-2">
-                              <span className={`font-semibold ${theme.itemTitle}`}>
-                                {item.position || "Stanowisko"}
-                                {item.company ? ` — ${item.company}` : ""}
-                              </span>
-                              {item.period && (
-                                <span className={`text-xs whitespace-nowrap ${theme.itemPeriod}`}>{item.period}</span>
-                              )}
-                            </div>
-                            {item.description && (
-                              <p className={`text-sm mt-1 whitespace-pre-line ${theme.itemDesc}`}>
-                                {item.description}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </section>
-                  )}
-
-                  {data.education.length > 0 && (
-                    <section className="mt-6">
-                      <h2 className={`text-sm uppercase tracking-widest font-semibold border-b pb-1 mb-3 ${theme.sectionHeading}`}>
-                        Wykształcenie
-                      </h2>
-                      <div className="space-y-3">
-                        {data.education.map((item) => (
-                          <div key={item.id} className="flex justify-between items-baseline flex-wrap gap-x-2">
-                            <span className={`font-semibold ${theme.itemTitle}`}>
-                              {item.school || "Szkoła"}
-                              {item.field ? ` — ${item.field}` : ""}
+                  </header>
+                  <main className="px-10 py-8">
+                    {data.summary && <p className={`text-sm leading-relaxed ${tpl.summary}`}>{data.summary}</p>}
+                    <ExperienceBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-xs uppercase tracking-[0.2em] font-bold border-b-2 pb-1 mb-3 ${tpl.sectionHeading} ${tpl.rule}`}
+                    />
+                    <EducationBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-xs uppercase tracking-[0.2em] font-bold border-b-2 pb-1 mb-3 ${tpl.sectionHeading} ${tpl.rule}`}
+                    />
+                    {data.skills.length > 0 && (
+                      <section className="mt-6">
+                        <h2 className={`text-xs uppercase tracking-[0.2em] font-bold border-b-2 pb-1 mb-3 ${tpl.sectionHeading} ${tpl.rule}`}>
+                          Umiejętności
+                        </h2>
+                        <div className="flex flex-wrap gap-1.5">
+                          {data.skills.map((skill) => (
+                            <span key={skill} className={`${tpl.skillTag} text-xs px-2.5 py-1 rounded`}>
+                              {skill}
                             </span>
-                            {item.period && (
-                              <span className={`text-xs whitespace-nowrap ${theme.itemPeriod}`}>{item.period}</span>
-                            )}
-                          </div>
-                        ))}
+                          ))}
+                        </div>
+                      </section>
+                    )}
+                  </main>
+                </div>
+              )}
+
+              {tpl.layout === "elegant" && (
+                <div className="min-h-full px-14 py-12">
+                  <header className="text-center">
+                    {data.photo && (
+                      <div className="flex justify-center mb-5">
+                        <Photo data={data} tpl={tpl} size="w-24 h-24" />
                       </div>
-                    </section>
-                  )}
-                </main>
-              </div>
+                    )}
+                    <h1 className={`text-4xl tracking-[0.18em] uppercase ${tpl.name}`}>
+                      {data.fullName || <span className={`italic ${tpl.placeholder}`}>Imię i nazwisko</span>}
+                    </h1>
+                    <div className={`border-t mt-5 mb-4 ${tpl.rule}`} />
+                    <p className={`text-base italic ${tpl.jobTitle}`}>
+                      {data.jobTitle || <span className={tpl.placeholder}>Stanowisko</span>}
+                    </p>
+                    <div className={`flex flex-wrap justify-center gap-x-4 gap-y-1 mt-3 text-xs ${tpl.contactText}`}>
+                      {contactEntries(data).map(({ value }, n) => (
+                        <span key={value}>
+                          {n > 0 && <span className="mr-4">·</span>}
+                          {value}
+                        </span>
+                      ))}
+                    </div>
+                  </header>
+                  <main className="mt-8">
+                    {data.summary && (
+                      <p className={`text-sm leading-relaxed text-center italic ${tpl.summary}`}>{data.summary}</p>
+                    )}
+                    <ExperienceBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-center text-sm uppercase tracking-[0.25em] mb-4 ${tpl.sectionHeading}`}
+                    />
+                    <EducationBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-center text-sm uppercase tracking-[0.25em] mb-4 ${tpl.sectionHeading}`}
+                    />
+                    {data.skills.length > 0 && (
+                      <section className="mt-6">
+                        <h2 className={`text-center text-sm uppercase tracking-[0.25em] mb-4 ${tpl.sectionHeading}`}>
+                          Umiejętności
+                        </h2>
+                        <p className={`text-center text-sm ${tpl.itemDesc}`}>{data.skills.join("  ·  ")}</p>
+                      </section>
+                    )}
+                  </main>
+                </div>
+              )}
+
+              {tpl.layout === "minimal" && (
+                <div className="min-h-full px-14 py-14">
+                  <header>
+                    <h1 className={`text-3xl font-light tracking-tight ${tpl.name}`}>
+                      {data.fullName || <span className={`italic ${tpl.placeholder}`}>Imię i nazwisko</span>}
+                    </h1>
+                    <p className={`text-[11px] uppercase tracking-[0.3em] mt-2 ${tpl.jobTitle}`}>
+                      {data.jobTitle || <span className={tpl.placeholder}>Stanowisko</span>}
+                    </p>
+                    <p className={`text-xs mt-4 ${tpl.contactText}`}>
+                      {contactEntries(data).map(({ value }) => value).join("  ·  ")}
+                    </p>
+                    <div className={`border-t mt-6 ${tpl.rule}`} />
+                  </header>
+                  <main>
+                    {data.summary && <p className={`mt-6 text-sm leading-7 ${tpl.summary}`}>{data.summary}</p>}
+                    <ExperienceBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-[11px] uppercase tracking-[0.25em] mb-4 ${tpl.sectionHeading}`}
+                    />
+                    <EducationBlock
+                      data={data}
+                      tpl={tpl}
+                      headingClass={`text-[11px] uppercase tracking-[0.25em] mb-4 ${tpl.sectionHeading}`}
+                    />
+                    {data.skills.length > 0 && (
+                      <section className="mt-6">
+                        <h2 className={`text-[11px] uppercase tracking-[0.25em] mb-4 ${tpl.sectionHeading}`}>
+                          Umiejętności
+                        </h2>
+                        <p className={`text-sm ${tpl.skillTag}`}>{data.skills.join(", ")}</p>
+                      </section>
+                    )}
+                  </main>
+                </div>
+              )}
             </div>
           </div>
         </div>
