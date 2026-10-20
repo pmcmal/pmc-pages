@@ -393,7 +393,16 @@ const CVGenerator = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
       <style>{`
         @media print {
-          @page { size: A4; margin: 12mm; }
+          /* Margines 0, a nie 12mm, z dwoch powodow.
+             Po pierwsze: naglowki i stopki przegladarki (data, adres, numer
+             strony) rysuja sie wlasnie w marginesie strony - bez marginesu nie
+             maja sie gdzie pojawic.
+             Po drugie: podglad ma dokladnie 210mm szerokosci, czyli tyle co A4.
+             Przy marginesie 12mm przegladarka musiala go scisnac do 186mm,
+             zmniejszajac cale CV o jakies 11%. Teraz mapuje sie 1:1.
+             Wewnetrzne odstepy daje sam szablon, a tla paskow i naglowkow
+             dochodza do krawedzi kartki, jak w drukowanych szablonach. */
+          @page { size: A4; margin: 0; }
 
           /* Przegladarki domyslnie pomijaja tla i kolory przy drukowaniu, zeby
              oszczedzac tusz. Przez to ciemny motyw wygladal czarno na ekranie,
@@ -696,7 +705,7 @@ const CVGenerator = () => {
             >
               {tpl.layout === "sidebar" && (
                 <div className="grid grid-cols-[210px_1fr] print:grid-cols-[210px_1fr] min-h-full">
-                  <aside className={`${tpl.sidebar} border-r p-6 flex flex-col items-center gap-6`}>
+                  <aside className={`${tpl.sidebar} border-r p-6 print:p-7 flex flex-col items-center gap-6`}>
                     <Photo data={data} tpl={tpl} size="w-28 h-28" />
                     <div className="w-full space-y-3 text-sm">
                       {contactEntries(data).map(({ Icon, value }) => (
@@ -719,7 +728,7 @@ const CVGenerator = () => {
                       </div>
                     )}
                   </aside>
-                  <main className="p-8">
+                  <main className="p-8 print:p-10">
                     <h1 className={`text-3xl font-bold ${tpl.name}`}>
                       {data.fullName || <span className={`italic ${tpl.placeholder}`}>Imię i nazwisko</span>}
                     </h1>
