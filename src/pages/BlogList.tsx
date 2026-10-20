@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter";
 import { getAllPosts, getPostTranslation, type BlogPost } from "@/lib/blog";
 import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
@@ -36,6 +37,7 @@ const BlogList = () => {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
       <SiteHomeButton />
+      <SiteControls />
       <div className="container mx-auto max-w-3xl px-4 py-16">
         <header className="mb-10">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">{t("blog.title")}</h1>

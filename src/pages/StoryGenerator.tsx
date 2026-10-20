@@ -10,6 +10,7 @@ import { streamEdgeFunction } from "@/lib/ai-stream";
 import { DISCLAIMERS } from "@/lib/ai-text";
 import { StorytellerLogo } from "@/components/StorytellerLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter";
 
 const StoryGenerator = () => {
@@ -72,6 +73,7 @@ const StoryGenerator = () => {
   return (
     <div className="min-h-screen bg-background container mx-auto p-4 max-w-3xl">
       <SiteHomeButton />
+      <SiteControls />
       <Card className="w-full">
         <CardHeader>
           <StorytellerLogo className="mb-4" />
@@ -140,7 +142,7 @@ const StoryGenerator = () => {
                   value={generatedStory}
                   readOnly
                   rows={15}
-                  className="font-mono bg-gray-50 dark:bg-gray-900"
+                  className="bg-gray-50 dark:bg-gray-900 leading-relaxed text-[15px]"
                 />
               </div>
               {disclaimer && (

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { CloudSun, Search, MapPin, Thermometer, Droplet, Wind, Gauge, LineChart, CalendarDays, Lightbulb, LocateFixed, AirVent, Sun, Cloud, CloudRain, Snowflake, Zap, CloudFog, HelpCircle, ArrowUp, ArrowDown, CheckCircle, Info, TriangleAlert, Home, ShoppingCart, Utensils, HeartPulse, Car, Clock } from 'lucide-react';
 import { toast } from "sonner";
 import { SiteHomeButton } from '@/components/SiteHomeButton';
+import { SiteControls } from "@/components/SiteControls";
 
 // Stałe API
 const API_KEY = import.meta.env.VITE_OPENWEATHERMAP_API_KEY || '';
@@ -577,6 +578,7 @@ const WeatherForecastAI = () => {
     return (
         <div className="min-h-screen gradient-bg">
             <SiteHomeButton />
+            <SiteControls />
             <div className="container mx-auto px-4 py-8 max-w-6xl">
                 {/* Header */}
                 <header className="text-center mb-10">

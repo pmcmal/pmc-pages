@@ -10,6 +10,7 @@ import { streamEdgeFunction } from "@/lib/ai-stream";
 import { parseScriptResponse, previewScript } from "@/lib/ai-text";
 import { ScripterLogo } from "@/components/ScripterLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter";
 
 const PowershellScriptGenerator = () => {
@@ -75,6 +76,7 @@ const PowershellScriptGenerator = () => {
   return (
     <div className="min-h-screen bg-background container mx-auto p-4 max-w-3xl">
       <SiteHomeButton />
+      <SiteControls />
       <Card className="w-full">
         <CardHeader>
           <ScripterLogo className="mb-4" />

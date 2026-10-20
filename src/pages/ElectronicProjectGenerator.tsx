@@ -10,6 +10,7 @@ import { streamEdgeFunction } from "@/lib/ai-stream";
 import { DISCLAIMERS, extractCodeFence, splitSections, toList } from "@/lib/ai-text";
 import { CircuitLogo } from "@/components/CircuitLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter";
 
 const ElectronicProjectGenerator = () => {
@@ -75,6 +76,7 @@ const ElectronicProjectGenerator = () => {
   return (
     <div className="min-h-screen bg-background container mx-auto p-4 max-w-3xl">
       <SiteHomeButton />
+      <SiteControls />
       <Card className="w-full">
         <CardHeader>
           <CircuitLogo className="mb-4" />

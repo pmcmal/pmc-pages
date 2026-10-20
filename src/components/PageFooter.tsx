@@ -10,7 +10,7 @@ export const PageFooter = () => {
           href="https://pl.linkedin.com/in/pmcmalec"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700 underline"
+          className="text-blue-600 dark:text-blue-400 hover:underline underline-offset-2"
         >
           LinkedIn
         </a>{" "}
@@ -19,7 +19,7 @@ export const PageFooter = () => {
           href="https://github.com/pmcmal"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700 underline"
+          className="text-blue-600 dark:text-blue-400 hover:underline underline-offset-2"
         >
           GitHub
         </a>
@@ -30,7 +30,7 @@ export const PageFooter = () => {
           href="https://tipped.pl/pmcmalec"
           target="_blank"
           rel="noopener noreferrer"
-          className="text-blue-500 hover:text-blue-700 underline"
+          className="text-blue-600 dark:text-blue-400 hover:underline underline-offset-2"
         >
           tipped.pl/pmcmalec
         </a>

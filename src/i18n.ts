@@ -13,6 +13,7 @@ const resources = {
         open: "Otwórz",
         themeToggle: "Przełącz motyw",
         langToggle: "Zmień język",
+        allProjects: "Wszystkie projekty",
       },
       blogBar: {
         title: "Blog",
@@ -59,6 +60,7 @@ const resources = {
         open: "Open",
         themeToggle: "Toggle theme",
         langToggle: "Change language",
+        allProjects: "All projects",
       },
       blogBar: {
         title: "Blog",

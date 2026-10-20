@@ -1,11 +1,8 @@
 import type { ElementType } from "react";
 import { useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { useTheme } from "next-themes";
 import { useTranslation } from "react-i18next";
 import {
-  Moon,
-  Sun,
   Terminal,
   Brain,
   ChefHat,
@@ -19,8 +16,8 @@ import {
   Newspaper,
   ChevronDown,
   Sparkles,
-  Languages,
 } from "lucide-react";
+import { SiteControls } from "@/components/SiteControls";
 import { PMCLogo } from "@/components/PMCLogo";
 import { PageFooter } from "@/components/PageFooter";
 import { getAllPosts, getPostTranslation, type BlogPost } from "@/lib/blog";
@@ -128,18 +125,9 @@ const ProjectGrid = ({ items, openLabel }: { items: ProjectCard[]; openLabel: st
 };
 
 const Index = () => {
-  const { theme, setTheme } = useTheme();
   const { t, i18n } = useTranslation();
   const [blogOpen, setBlogOpen] = useState(true);
   const posts = getAllPosts();
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
-  const toggleLanguage = () => {
-    i18n.changeLanguage(i18n.language === "pl" ? "en" : "pl");
-  };
 
   const projects: ProjectCard[] = projectsMeta.map((p) => ({
     ...p,
@@ -151,23 +139,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
-      <div className="absolute top-4 right-4 flex items-center gap-2">
-        <button
-          onClick={toggleLanguage}
-          aria-label={t("index.langToggle")}
-          title={t("index.langToggle")}
-          className="flex items-center justify-center gap-1 h-10 px-3 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-xs font-semibold uppercase"
-        >
-          <Languages className="h-4 w-4" /> {i18n.language === "pl" ? "PL" : "EN"}
-        </button>
-        <button
-          onClick={toggleTheme}
-          aria-label={t("index.themeToggle")}
-          className="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
-          {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
-      </div>
+      <SiteControls />
 
       <div className="container mx-auto max-w-5xl px-4 py-16">
         <header className="flex flex-col items-center text-center mb-14">

@@ -10,6 +10,7 @@ import { streamEdgeFunction } from "@/lib/ai-stream";
 import { DISCLAIMERS } from "@/lib/ai-text";
 import { PhilosopherLogo } from "@/components/PhilosopherLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter";
 
 const PhilosopherCoach = () => {
@@ -63,6 +64,7 @@ const PhilosopherCoach = () => {
   return (
     <div className="min-h-screen bg-background container mx-auto p-4 max-w-3xl">
       <SiteHomeButton />
+      <SiteControls />
       <Card className="w-full">
         <CardHeader>
           <PhilosopherLogo className="mb-4" /> {/* Użycie nowego komponentu logo */}
@@ -107,7 +109,7 @@ const PhilosopherCoach = () => {
                   value={advice}
                   readOnly
                   rows={10}
-                  className="font-mono bg-gray-50 dark:bg-gray-900"
+                  className="bg-gray-50 dark:bg-gray-900 leading-relaxed text-[15px]"
                 />
               </div>
               {disclaimer && (

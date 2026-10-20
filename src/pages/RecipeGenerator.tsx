@@ -10,6 +10,7 @@ import { streamEdgeFunction } from "@/lib/ai-stream";
 import { splitSections } from "@/lib/ai-text";
 import { ChefLogo } from "@/components/ChefLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter"; // Import nowego komponentu logo
 
 type ConversionTable = string | Record<string, unknown>;
@@ -68,6 +69,7 @@ const RecipeGenerator = () => {
   return (
     <div className="min-h-screen bg-background container mx-auto p-4 max-w-3xl">
       <SiteHomeButton />
+      <SiteControls />
       <Card className="w-full">
         <CardHeader>
           <ChefLogo className="mb-4" />
@@ -114,7 +116,7 @@ const RecipeGenerator = () => {
                   value={generatedRecipe}
                   readOnly
                   rows={15}
-                  className="font-mono bg-gray-50 dark:bg-gray-900"
+                  className="bg-gray-50 dark:bg-gray-900 leading-relaxed text-[15px]"
                 />
               </div>
 

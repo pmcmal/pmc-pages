@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter";
 import { showSuccess } from "@/utils/toast";
 import {
@@ -202,6 +203,7 @@ const CVGenerator = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
       <style>{`@media print { @page { size: A4; margin: 12mm; } }`}</style>
       <SiteHomeButton />
+      <SiteControls />
 
       <div className="max-w-7xl mx-auto print:max-w-none">
         <div className="text-center mb-6 print:hidden">

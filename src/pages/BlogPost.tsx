@@ -5,6 +5,7 @@ import rehypeRaw from "rehype-raw";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
+import { SiteControls } from "@/components/SiteControls";
 import { PageFooter } from "@/components/PageFooter";
 import { getPostBySlug, getPostTranslation, autoLinkBareDomains } from "@/lib/blog";
 import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
@@ -23,6 +24,7 @@ const BlogPost = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
         <SiteHomeButton />
+        <SiteControls />
         <div className="container mx-auto max-w-3xl px-4 py-16 text-center">
           <h1 className="text-2xl font-bold mb-4">{t("blog.notFoundTitle")}</h1>
           <Link to="/blog">
