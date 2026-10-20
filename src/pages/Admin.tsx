@@ -13,7 +13,9 @@ import { ResizableImage } from "@/components/ResizableImage";
 import { supabase } from "@/integrations/supabase/client";
 import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 import { getAllPosts, autoLinkBareDomains, type BlogPost } from "@/lib/blog";
-import { sandboxApps } from "@/lib/sandbox-apps";
+import { sandboxApps, type SandboxApp } from "@/lib/sandbox-apps";
+import { ICON_OPTIONS, COLOR_OPTIONS, COLOR_SWATCH_CLASS } from "@/lib/promote-options";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Podmienia width="N" w konkretnym tagu <img src="..."> na nowa wartosc (albo dodaje atrybut, jesli go nie ma)
 function updateImageWidthInMarkdown(markdown: string, src: string, newWidth: number): string {
@@ -33,6 +35,140 @@ const slugify = (title: string) =>
     .replace(/[̀-ͯ]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "");
+
+// "lyrics-finder" -> "lyricsFinder" - projectsMeta/i18n uzywaja camelCase, sandbox-apps.ts kebab-case
+const kebabToCamel = (slug: string) => slug.replace(/-([a-z0-9])/g, (_, c) => c.toUpperCase());
+
+const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (key: string) => void }) => {
+  const [open, setOpen] = useState(false);
+  const [icon, setIcon] = useState("");
+  const [color, setColor] = useState("");
+  const [category, setCategory] = useState<"ai" | "other">("other");
+  const [titlePl, setTitlePl] = useState(app.title);
+  const [descriptionPl, setDescriptionPl] = useState(app.description);
+  const [titleEn, setTitleEn] = useState("");
+  const [descriptionEn, setDescriptionEn] = useState("");
+  const [isPromoting, setIsPromoting] = useState(false);
+
+  const handlePromote = async () => {
+    if (!icon || !color || !titlePl.trim() || !descriptionPl.trim() || !titleEn.trim() || !descriptionEn.trim()) {
+      toast.error("Uzupełnij ikonę, kolor oraz tytuł i opis po polsku i angielsku.");
+      return;
+    }
+    setIsPromoting(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("promote-sandbox-app", {
+        body: {
+          key: kebabToCamel(app.key),
+          sandboxKey: app.key,
+          path: app.path,
+          icon,
+          color,
+          category,
+          titlePl: titlePl.trim(),
+          descriptionPl: descriptionPl.trim(),
+          titleEn: titleEn.trim(),
+          descriptionEn: descriptionEn.trim(),
+        },
+      });
+      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
+      if (data?.error) throw new Error(data.error);
+      toast.success(
+        `"${app.title}" przeniesiony na stronę główną! Deploy na Vercelu ruszy automatycznie (ok. 1 min) — odśwież stronę po chwili.`,
+      );
+      onPromoted(app.key);
+    } catch (e) {
+      toast.error(`Błąd przenoszenia na stronę główną: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIsPromoting(false);
+    }
+  };
+
+  return (
+    <div className="border-t border-amber-200 dark:border-amber-900 mt-2 pt-2">
+      <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(!open)}>
+        {open ? "Anuluj" : "🚀 Przenieś na stronę główną"}
+      </Button>
+      {open && (
+        <div className="mt-2 space-y-3 p-3 rounded-lg bg-white dark:bg-gray-900 border border-amber-200 dark:border-amber-900">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <Label>Ikona</Label>
+              <Select value={icon} onValueChange={setIcon}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz ikonę" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Object.entries(ICON_OPTIONS).map(([name, Icon]) => (
+                    <SelectItem key={name} value={name}>
+                      <span className="flex items-center gap-2">
+                        <Icon className="w-4 h-4" /> {name}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Kolor</Label>
+              <Select value={color} onValueChange={setColor}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Wybierz kolor" />
+                </SelectTrigger>
+                <SelectContent>
+                  {COLOR_OPTIONS.map((c) => (
+                    <SelectItem key={c} value={c}>
+                      <span className="flex items-center gap-2">
+                        <span className={`w-3 h-3 rounded-full ${COLOR_SWATCH_CLASS[c]}`} /> {c}
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Kategoria</Label>
+              <Select value={category} onValueChange={(v) => setCategory(v as "ai" | "other")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ai">Wsparte na AI</SelectItem>
+                  <SelectItem value="other">Pozostałe projekty</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <Label>Tytuł (PL)</Label>
+              <Input value={titlePl} onChange={(e) => setTitlePl(e.target.value)} />
+            </div>
+            <div>
+              <Label>Tytuł (EN)</Label>
+              <Input value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="np. CV Generator" />
+            </div>
+            <div>
+              <Label>Opis (PL)</Label>
+              <Input value={descriptionPl} onChange={(e) => setDescriptionPl(e.target.value)} />
+            </div>
+            <div>
+              <Label>Opis (EN)</Label>
+              <Input
+                value={descriptionEn}
+                onChange={(e) => setDescriptionEn(e.target.value)}
+                placeholder="np. A simple CV builder with a live preview."
+              />
+            </div>
+          </div>
+          <Button onClick={handlePromote} disabled={isPromoting} className="w-full">
+            {isPromoting ? "Przenoszenie..." : "Potwierdź i przenieś na stronę główną"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const IDLE_LOGOUT_MS = 10 * 60 * 1000;
 const IDLE_CHECK_INTERVAL_MS = 15 * 1000;
@@ -123,6 +259,7 @@ const Editor = ({ session }: { session: Session }) => {
   const [slugTouched, setSlugTouched] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [posts, setPosts] = useState<BlogPost[]>(getAllPosts());
+  const [sandbox, setSandbox] = useState<SandboxApp[]>(sandboxApps);
   const [instruction, setInstruction] = useState("");
   const [aiResult, setAiResult] = useState("");
   const [isAsking, setIsAsking] = useState(false);
@@ -261,27 +398,35 @@ const Editor = ({ session }: { session: Session }) => {
           </Button>
         </div>
 
-        {sandboxApps.length > 0 && (
+        {sandbox.length > 0 && (
           <div className="mb-8 p-5 rounded-xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold">🧪 Piaskownica ({sandboxApps.length})</h2>
+              <h2 className="font-semibold">🧪 Piaskownica ({sandbox.length})</h2>
               <span className="text-xs text-amber-700 dark:text-amber-400">
                 Działają, ale nie ma ich jeszcze na stronie głównej — przetestuj i daj znać, jeśli mają wejść na stałe.
               </span>
             </div>
             <div className="space-y-2">
-              {sandboxApps.map((app) => (
-                <a
+              {sandbox.map((app) => (
+                <div
                   key={app.key}
-                  href={app.path}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block p-3 rounded-lg border border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-900 hover:border-amber-400 transition-colors"
+                  className="p-3 rounded-lg border border-amber-200 dark:border-amber-900 bg-white dark:bg-gray-900"
                 >
-                  <div className="font-medium">{app.title}</div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">{app.description}</div>
-                  <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">{app.path} ↗</div>
-                </a>
+                  <a
+                    href={app.path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block hover:opacity-80 transition-opacity"
+                  >
+                    <div className="font-medium">{app.title}</div>
+                    <div className="text-sm text-gray-500 dark:text-gray-400">{app.description}</div>
+                    <div className="text-xs text-amber-700 dark:text-amber-400 mt-1">{app.path} ↗</div>
+                  </a>
+                  <PromoteSandboxApp
+                    app={app}
+                    onPromoted={(key) => setSandbox((prev) => prev.filter((a) => a.key !== key))}
+                  />
+                </div>
               ))}
             </div>
           </div>
