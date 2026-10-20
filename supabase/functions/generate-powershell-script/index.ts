@@ -13,10 +13,43 @@ function corsHeadersFor(req: Request) {
   };
 }
 
-// Niektore darmowe modele owijaja odpowiedz w blok markdown ```json ... ``` mimo instrukcji w promptcie
-function extractJson(text: string): string {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  return match ? match[1] : text;
+function cleanNotes(text: string): string {
+  return text.replace(/^---UWAGI---$/gm, "").replace(/\n{3,}/g, "\n\n").trim();
+}
+
+// Model ma oddawac czysty tekst: blok ```powershell z kodem, a pod nim opcjonalne
+// uwagi po linii ---UWAGI---. Wczesniej wymuszalismy JSON {script, explanation} i to
+// byla glowna przyczyna komunikatu "Nie udalo sie przetworzyc odpowiedzi AI": kod
+// PowerShell jest pelen cudzyslowow, backslashy i znakow nowej linii, ktore slabsze
+// darmowe modele notorycznie zle escapuja wewnatrz stringa JSON. Blok kodu tego
+// problemu nie ma, bo niczego nie trzeba escapowac.
+function parseScriptResponse(text: string): { script: string; explanation: string } {
+  // 1. Zgodnosc wstecz - model mimo wszystko oddal poprawny JSON
+  const jsonFence = text.match(/```json\s*([\s\S]*?)\s*```/);
+  const jsonCandidate = (jsonFence ? jsonFence[1] : text).trim();
+  if (jsonCandidate.startsWith("{")) {
+    const attempts = [jsonCandidate];
+    try { attempts.push(jsonrepair(jsonCandidate)); } catch { /* nie da sie naprawic */ }
+    for (const candidate of attempts) {
+      try {
+        const parsed = JSON.parse(candidate);
+        if (typeof parsed?.script === "string" && parsed.script.trim()) {
+          return { script: parsed.script.trim(), explanation: String(parsed.explanation ?? "").trim() };
+        }
+      } catch { /* probujemy kolejnego wariantu */ }
+    }
+  }
+
+  // 2. Wlasciwy kontrakt - blok kodu, a reszta tekstu to uwagi
+  const codeFence = text.match(/```(?:powershell|pwsh|ps1?)?\s*([\s\S]*?)```/i);
+  if (codeFence?.index !== undefined) {
+    const rest = text.slice(0, codeFence.index) + text.slice(codeFence.index + codeFence[0].length);
+    return { script: codeFence[1].trim(), explanation: cleanNotes(rest) };
+  }
+
+  // 3. Brak bloku - model oddal goly kod, ewentualnie z sekcja uwag
+  const [code, ...notes] = text.split(/^---UWAGI---$/m);
+  return { script: code.trim(), explanation: cleanNotes(notes.join("\n")) };
 }
 
 serve(async (req) => {
@@ -60,7 +93,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: "Jesteś ekspertem od skryptów PowerShell. Twoim zadaniem jest generowanie skryptów PowerShell na podstawie opisów użytkownika. Zawsze zwracaj tylko czysty kod PowerShell, bez dodatkowych objaśnień, wstępów czy zakończeń. Jeśli potrzebujesz dodać ważne informacje lub ostrzeżenia, umieść je w osobnym bloku tekstowym, który będzie oddzielony od kodu. Format odpowiedzi powinien być obiektem JSON z dwoma polami: `script` (zawierającym czysty kod PowerShell) i `explanation` (zawierającym wszelkie objaśnienia lub ostrzeżenia). Jeśli nie ma objaśnień, pole `explanation` powinno być pustym ciągiem. Upewnij się, że skrypt jest bezpieczny i zgodny z najlepszymi praktykami. Jeśli zapytanie jest niejasne lub potencjalnie niebezpieczne, poproś o więcej szczegółów lub odmów generowania skryptu, wyjaśniając dlaczego.",
+            content: "Jesteś ekspertem od skryptów PowerShell. Odpowiadaj WYŁĄCZNIE czystym tekstem w tym formacie: najpierw pojedynczy blok kodu ```powershell zawierający gotowy skrypt, a następnie — tylko jeśli masz ostrzeżenia lub objaśnienia — linia ---UWAGI--- i pod nią zwięzły opis. Nie zwracaj JSON-a. Nie pisz nic przed blokiem kodu. Skrypt ma być bezpieczny i zgodny z dobrymi praktykami. Jeśli zapytanie jest niejasne lub potencjalnie niebezpieczne, nie generuj skryptu — umieść wyjaśnienie w sekcji ---UWAGI---.",
           },
           {
             role: "user",
@@ -88,24 +121,13 @@ serve(async (req) => {
       throw new Error("Model AI nie zwrocil tresci - darmowy router byl chwilowo przeciazony. Sprobuj ponownie za chwile.");
     }
 
-    // Attempt to parse the response as JSON
-    let parsedResponse;
-    const jsonCandidate = extractJson(aiResponseContent);
-    try {
-      parsedResponse = JSON.parse(jsonCandidate);
-    } catch {
-      try {
-        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
-      } catch (e) {
-        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-        parsedResponse = {
-          script: aiResponseContent,
-          explanation: "Nie udało się poprawnie przetworzyć odpowiedzi AI. Proszę dokładnie sprawdzić wygenerowany skrypt.",
-        };
-      }
+    const { script, explanation } = parseScriptResponse(aiResponseContent);
+    if (!script) {
+      console.error("Odpowiedz bez kodu skryptu:", aiResponseContent);
+      throw new Error("Model AI nie zwrocil kodu skryptu. Sprobuj ponownie lub doprecyzuj opis.");
     }
 
-    return new Response(JSON.stringify(parsedResponse), {
+    return new Response(JSON.stringify({ script, explanation }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
