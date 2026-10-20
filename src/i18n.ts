@@ -31,6 +31,7 @@ const resources = {
         store: { title: "Przykładowy Sklep WWW", description: "Demo sklepu w stylu terminala — portfolio projekt e-commerce." },
         lyricsFinder: { title: "Wyszukiwarka Tekstów Piosenek", description: "Sprawdź tekst piosenki w klimacie retro Winamp (lyrics.ovh, darmowe API)." },
         cvGenerator: { title: "Generator CV", description: "Prosty i schludny kreator CV z podglądem na żywo, zapisem w przeglądarce i eksportem do PDF." },
+        tunel: { title: "Tunel", description: "Gra 3D: lec przez bramki i zbieraj krysztaly. Sterowanie dotykiem albo WSAD." },
       },
       footer: {
         createdBy: "Stworzył Paweł Malec ®",
@@ -79,6 +80,7 @@ const resources = {
         store: { title: "Sample Web Store", description: "Terminal-styled store demo — an e-commerce portfolio project." },
         lyricsFinder: { title: "Lyrics Search", description: "Check out the lyrics in a retro Winamp style (lyrics.ovh, free API)" },
         cvGenerator: { title: "CV Generator", description: "A simple and clean CV builder with live preview, browser storage, and PDF export." },
+        tunel: { title: "Tunnel", description: "3D game: fly through gates and collect crystals. Touch or WASD control." },
       },
       footer: {
         createdBy: "Built by Paweł Malec ®",

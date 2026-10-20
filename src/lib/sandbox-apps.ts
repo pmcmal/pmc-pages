@@ -10,10 +10,4 @@ export interface SandboxApp {
 }
 
 export const sandboxApps: SandboxApp[] = [
-  {
-    key: "tunel",
-    title: "Tunel",
-    description: "Gra 3D: lec przez bramki i zbieraj krysztaly. Sterowanie dotykiem albo WSAD.",
-    path: "/tunel",
-  },
 ];
