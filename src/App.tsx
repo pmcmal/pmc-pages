@@ -15,13 +15,11 @@ const StoryGenerator = lazy(() => import("./pages/StoryGenerator"));
 const ElectronicProjectGenerator = lazy(() => import("./pages/ElectronicProjectGenerator"));
 const ShortAICourse = lazy(() => import("./pages/ShortAICourse"));
 const WeatherForecastAI = lazy(() => import("./pages/WeatherForecastAI"));
-const SpaceInvaders = lazy(() => import("./pages/SpaceInvaders"));
 const PortfolioStore = lazy(() => import("./pages/PortfolioStore"));
 const BlogList = lazy(() => import("./pages/BlogList"));
 const BlogPost = lazy(() => import("./pages/BlogPost"));
 const Admin = lazy(() => import("./pages/Admin"));
 const LyricsFinder = lazy(() => import("./pages/LyricsFinder"));
-const MarioPlatformer = lazy(() => import("./pages/MarioPlatformer"));
 const CVGenerator = lazy(() => import("./pages/CVGenerator"));
 
 const queryClient = new QueryClient();
@@ -43,14 +41,12 @@ const App = () => (
               <Route path="/electronic-project-generator" element={<ElectronicProjectGenerator />} />
               <Route path="/short-ai-course" element={<ShortAICourse />} />
               <Route path="/weather-forecast-ai" element={<WeatherForecastAI />} />
-              <Route path="/space-invaders" element={<SpaceInvaders />} />
               <Route path="/portfolio-store" element={<PortfolioStore />} />
               <Route path="/blog" element={<BlogList />} />
               <Route path="/blog/:slug" element={<BlogPost />} />
               <Route path="/admin" element={<Admin />} />
               {/* Piaskownica: strony gotowe technicznie, jeszcze niepromowane na strone glowna - patrz src/lib/sandbox-apps.ts */}
               <Route path="/lyrics-finder" element={<LyricsFinder />} />
-              <Route path="/mario-platformer" element={<MarioPlatformer />} />
               <Route path="/cv-generator" element={<CVGenerator />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

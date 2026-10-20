@@ -10,7 +10,6 @@ import {
   CircuitBoard,
   GraduationCap,
   CloudSun,
-  Rocket,
   ShoppingCart,
   ArrowRight,
   Newspaper,
@@ -67,7 +66,6 @@ const projectsMeta: ProjectMeta[] = [
   { key: "electronics", path: "/electronic-project-generator", icon: CircuitBoard, accent: "text-emerald-500 bg-emerald-500/10", category: "ai" },
   { key: "aiCourse", path: "/short-ai-course", icon: GraduationCap, accent: "text-indigo-500 bg-indigo-500/10", category: "other" },
   { key: "weather", path: "/weather-forecast-ai", icon: CloudSun, accent: "text-purple-500 bg-purple-500/10", category: "other" },
-  { key: "spaceInvaders", path: "/space-invaders", icon: Rocket, accent: "text-green-500 bg-green-500/10", category: "other" },
   { key: "store", path: "/portfolio-store", icon: ShoppingCart, accent: "text-lime-500 bg-lime-500/10", category: "other" },
 ];
 

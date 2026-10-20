@@ -17,12 +17,6 @@ export const sandboxApps: SandboxApp[] = [
     path: "/lyrics-finder",
   },
   {
-    key: "mario-platformer",
-    title: "Super PMC Bros",
-    description: "Platformówka inspirowana klasykiem: skacz po platformach, zbieraj monety, depcz wrogów i dobiegnij do flagi.",
-    path: "/mario-platformer",
-  },
-  {
     key: "cv-generator",
     title: "Generator CV",
     description: "Prosty i schludny kreator CV z podglądem na żywo, zapisem w przeglądarce i eksportem do PDF.",
