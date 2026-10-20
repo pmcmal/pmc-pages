@@ -10,10 +10,4 @@ export interface SandboxApp {
 }
 
 export const sandboxApps: SandboxApp[] = [
-  {
-    key: "cv-generator",
-    title: "Generator CV",
-    description: "Prosty i schludny kreator CV z podglądem na żywo, zapisem w przeglądarce i eksportem do PDF.",
-    path: "/cv-generator",
-  },
 ];

@@ -16,6 +16,7 @@ import {
   ChevronDown,
   Sparkles,
   Music,
+  FileText,
 } from "lucide-react";
 import { SiteControls } from "@/components/SiteControls";
 import { PMCLogo } from "@/components/PMCLogo";
@@ -69,6 +70,7 @@ const projectsMeta: ProjectMeta[] = [
   { key: "weather", path: "/weather-forecast-ai", icon: CloudSun, accent: "text-purple-500 bg-purple-500/10", category: "other" },
   { key: "store", path: "/portfolio-store", icon: ShoppingCart, accent: "text-lime-500 bg-lime-500/10", category: "other" },
   { key: "lyricsFinder", path: "/lyrics-finder", icon: Music, accent: "text-fuchsia-500 bg-fuchsia-500/10", category: "other" },
+  { key: "cvGenerator", path: "/cv-generator", icon: FileText, accent: "text-indigo-500 bg-indigo-500/10", category: "other" },
 ];
 
 const MAGNIFY_RADIUS = 220;
