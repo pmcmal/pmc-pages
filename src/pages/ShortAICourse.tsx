@@ -253,7 +253,7 @@ const ShortAICourse = () => {
 
             {/* Hero Section */}
             <header id="start" className="pt-32 pb-20 px-4 text-center relative overflow-hidden">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-indigo-600/20 rounded-full blur-[100px] -z-10"></div>
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] max-w-full h-[500px] bg-indigo-600/20 rounded-full blur-[100px] -z-10"></div>
                 
                 <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
                     Zrozum Sztuczną Inteligencję <br />

@@ -327,6 +327,27 @@ const CVGenerator = () => {
   // zapis z localStorage moze pochodzic sprzed przebudowy szablonow
   const tpl = templates[data.templateMode] ?? templates.classic;
 
+  // Podglad ma sztywne 210mm (czyli szerokosc A4), a w srodku pasek boczny
+  // o stalych 210px. Na telefonie pasek zjadal polowe ekranu i uklad sie
+  // rozjezdzal. Zamiast przebudowywac kartke pod waski ekran - co pokazywaloby
+  // cos innego niz to, co wyjdzie z drukarki - skalujemy ja w calosci.
+  const previewBoxRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  const A4_WIDTH_PX = 794; // 210mm przy 96 dpi
+  const A4_HEIGHT_PX = 1123; // 297mm przy 96 dpi
+
+  useEffect(() => {
+    const box = previewBoxRef.current;
+    if (!box) return;
+    const update = () => setPreviewScale(Math.min(1, box.clientWidth / A4_WIDTH_PX));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(box);
+    return () => observer.disconnect();
+  }, []);
+
+  const isScaled = previewScale < 1;
+
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -390,7 +411,7 @@ const CVGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4 pt-16 sm:pt-4">
       <style>{`
         @media print {
           /* Margines 0, a nie 12mm, z dwoch powodow.
@@ -411,6 +432,13 @@ const CVGenerator = () => {
           #cv-preview, #cv-preview * {
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
+          }
+
+          /* Na waskim ekranie podglad jest pomniejszany transformem, zeby
+             zmiescic cala kartke. Na wydruku ma byc zawsze 1:1. */
+          #cv-preview {
+            transform: none !important;
+            margin: 0 !important;
           }
         }
       `}</style>
@@ -467,7 +495,7 @@ const CVGenerator = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Imię i nazwisko</Label>
                     <Input
@@ -486,7 +514,7 @@ const CVGenerator = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>E-mail</Label>
                     <Input
@@ -506,7 +534,7 @@ const CVGenerator = () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <Label>Lokalizacja</Label>
                     <Input
@@ -559,7 +587,7 @@ const CVGenerator = () => {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <div className="grid grid-cols-2 gap-2 pr-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
                       <Input
                         value={item.position}
                         onChange={(e) => updateExperience(item.id, "position", e.target.value)}
@@ -609,7 +637,7 @@ const CVGenerator = () => {
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
-                    <div className="grid grid-cols-2 gap-2 pr-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pr-6">
                       <Input
                         value={item.school}
                         onChange={(e) => updateEducation(item.id, "school", e.target.value)}
@@ -708,11 +736,26 @@ const CVGenerator = () => {
               ))}
             </div>
 
-            <div
-              id="cv-preview"
-              className={`${tpl.page} shadow-xl mx-auto rounded-2xl overflow-hidden print:shadow-none print:mx-0 print:rounded-none`}
-              style={{ width: "210mm", minHeight: "297mm", maxWidth: "100%" }}
-            >
+            {/* Pudelko mierzy dostepna szerokosc; drugi div rezerwuje wysokosc
+                po przeskalowaniu, bo transform nie zmienia miejsca zajmowanego
+                w ukladzie i bez tego pod podgladem zostawalaby pusta przestrzen. */}
+            <div ref={previewBoxRef} className="w-full print:w-auto">
+              <div
+                style={isScaled ? { height: A4_HEIGHT_PX * previewScale } : undefined}
+                className="print:h-auto"
+              >
+                <div
+                  id="cv-preview"
+                  className={`${tpl.page} shadow-xl rounded-2xl overflow-hidden print:shadow-none print:mx-0 print:rounded-none ${
+                    isScaled ? "" : "mx-auto"
+                  }`}
+                  style={{
+                    width: "210mm",
+                    minHeight: "297mm",
+                    transform: isScaled ? `scale(${previewScale})` : undefined,
+                    transformOrigin: "top left",
+                  }}
+                >
               {tpl.layout === "sidebar" && (
                 <div className="grid grid-cols-[210px_1fr] print:grid-cols-[210px_1fr] min-h-full">
                   <aside className={`${tpl.sidebar} border-r p-6 print:p-7 flex flex-col items-center gap-6`}>
@@ -898,6 +941,8 @@ const CVGenerator = () => {
                   </main>
                 </div>
               )}
+                </div>
+              </div>
             </div>
           </div>
         </div>

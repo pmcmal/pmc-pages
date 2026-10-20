@@ -579,14 +579,14 @@ const WeatherForecastAI = () => {
         <div className="min-h-screen gradient-bg">
             <SiteHomeButton />
             <SiteControls />
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
+            <div className="container mx-auto px-4 py-8 pt-16 sm:pt-8 max-w-6xl">
                 {/* Header */}
                 <header className="text-center mb-10">
-                    <h1 className="text-5xl font-bold text-white mb-4 flex items-center justify-center gap-3">
+                    <h1 className="text-3xl sm:text-5xl font-bold text-white mb-4 flex flex-wrap items-center justify-center gap-3">
                         <CloudSun className="float-animation" size={48} />
                         Inteligentna Pogoda
                     </h1>
-                    <p className="text-xl text-purple-100">Analiza i prognozy pogodowe dla każdej miejscowości</p>
+                    <p className="text-base sm:text-xl text-purple-100">Analiza i prognozy pogodowe dla każdej miejscowości</p>
                 </header>
 
                 {/* Search Section */}
@@ -663,7 +663,7 @@ const WeatherForecastAI = () => {
                                         <p><Clock className="inline-block mr-2 w-4 h-4" />{currentTime}</p>
                                     </div>
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div className="bg-white/10 rounded-xl p-4">
                                         <Thermometer className="text-2xl text-orange-300 mb-2" size={24} />
                                         <p className="text-purple-200 text-sm">Odczuwalna</p>

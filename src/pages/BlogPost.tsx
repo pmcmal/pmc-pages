@@ -52,7 +52,7 @@ const BlogPost = () => {
           )}
           <div className="text-sm text-gray-400 dark:text-gray-500 mb-2">{post.date}</div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-8">{title}</h1>
-          <div className="prose prose-gray dark:prose-invert max-w-none">
+          <div className="prose prose-gray dark:prose-invert max-w-none break-words prose-pre:overflow-x-auto">
             <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeRaw]}>
               {autoLinkBareDomains(content)}
             </ReactMarkdown>

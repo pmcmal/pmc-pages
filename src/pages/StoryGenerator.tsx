@@ -71,7 +71,7 @@ const StoryGenerator = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background container mx-auto p-4 max-w-3xl">
+    <div className="min-h-screen bg-background container mx-auto p-4 pt-16 sm:pt-4 max-w-3xl">
       <SiteHomeButton />
       <SiteControls />
       <Card className="w-full">
