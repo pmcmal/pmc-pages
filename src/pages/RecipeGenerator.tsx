@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
+import { streamEdgeFunction } from "@/lib/ai-stream";
+import { splitSections } from "@/lib/ai-text";
 import { ChefLogo } from "@/components/ChefLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter"; // Import nowego komponentu logo
@@ -37,33 +37,21 @@ const RecipeGenerator = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-recipe', {
-        body: JSON.stringify({ prompt: currentPrompt }),
-      });
+      // splitSections oddaje tez sekcje jeszcze niedomknieta, wiec w trakcie
+      // strumienia pokazujemy sam przepis, bez naglowka.
+      const fullText = await streamEdgeFunction(
+        "generate-recipe",
+        { prompt: currentPrompt },
+        (text) => setGeneratedRecipe(splitSections(text)["PRZEPIS"] ?? text),
+      );
 
-      if (error) {
-        console.error("Error invoking Edge Function:", error);
-        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
-        toast.error(`Błąd podczas generowania przepisu: ${message}`);
-        // Nie ustawiaj conversionTable na komunikat o błędzie
-      } else if (data) {
-        // Ensure recipeText is a string
-        let recipeText = data.recipeText;
-        if (typeof recipeText === 'object' && recipeText !== null) {
-          recipeText = JSON.stringify(recipeText, null, 2); // Convert object to formatted JSON string
-          toast.warning("AI zwróciło przepis jako obiekt. Został on przekonwertowany na tekst.");
-        }
-
-        setGeneratedRecipe(recipeText || "");
-        setConversionTable(data.conversionTable || "");
-        toast.success("Przepis został wygenerowany!");
-      } else {
-        toast.error("Nie otrzymano odpowiedzi od generatora przepisów.");
-        // Nie ustawiaj conversionTable na komunikat o błędzie
-      }
+      const sections = splitSections(fullText);
+      setGeneratedRecipe(sections["PRZEPIS"] ?? fullText.trim());
+      setConversionTable(sections["PRZELICZNIKI"] ?? "");
+      toast.success("Przepis został wygenerowany!");
     } catch (e) {
-      console.error("Unexpected error:", e);
-      toast.error(`Wystąpił nieoczekiwany błąd: ${e instanceof Error ? e.message : String(e)}`);
+      console.error("Błąd generowania przepisu:", e);
+      toast.error(`Błąd podczas generowania przepisu: ${e instanceof Error ? e.message : String(e)}`);
       // Nie ustawiaj conversionTable na komunikat o błędzie
     } finally {
       setIsLoading(false);

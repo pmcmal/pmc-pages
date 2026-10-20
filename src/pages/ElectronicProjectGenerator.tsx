@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
+import { streamEdgeFunction } from "@/lib/ai-stream";
+import { DISCLAIMERS, extractCodeFence, splitSections, toList } from "@/lib/ai-text";
 import { CircuitLogo } from "@/components/CircuitLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -39,29 +39,27 @@ const ElectronicProjectGenerator = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-electronic-project', {
-        body: JSON.stringify({ prompt: currentPrompt }),
-      });
+      // W trakcie strumienia pokazujemy sam opis; komponenty i kod pojawiaja
+      // sie dopiero, gdy ich sekcje w calosci dojda.
+      const fullText = await streamEdgeFunction(
+        "generate-electronic-project",
+        { prompt: currentPrompt },
+        (text) => setGeneratedProject(splitSections(text)["OPIS"] ?? text),
+      );
 
-      if (error) {
-        console.error("Error invoking Edge Function:", error);
-        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
-        toast.error(`Błąd podczas generowania pomysłu na projekt: ${message}`);
-        setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
-      } else if (data) {
-        setGeneratedProject(data.projectIdea || "");
-        setComponentsNeeded(data.componentsNeeded || []);
-        setExampleCode(data.exampleCode || "");
-        setDisclaimer(data.disclaimer || "");
-        toast.success("Pomysł na projekt został wygenerowany!");
-      } else {
-        toast.error("Nie otrzymano odpowiedzi od generatora projektów.");
-        setDisclaimer("Nie otrzymano odpowiedzi od generatora projektów.");
-      }
+      const sections = splitSections(fullText);
+      const codeSection = sections["KOD"] ?? "";
+      const code = extractCodeFence(codeSection).code || extractCodeFence(fullText).code;
+
+      setGeneratedProject(sections["OPIS"] ?? fullText.trim());
+      setComponentsNeeded(toList(sections["KOMPONENTY"] ?? ""));
+      setExampleCode(/^brak\.?$/i.test(codeSection.trim()) ? "" : code);
+      setDisclaimer(DISCLAIMERS.electronics);
+      toast.success("Pomysł na projekt został wygenerowany!");
     } catch (e) {
-      console.error("Unexpected error:", e);
-      toast.error(`Wystąpił nieoczekiwany błąd: ${e instanceof Error ? e.message : String(e)}`);
-      setDisclaimer("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+      console.error("Błąd generowania pomysłu na projekt:", e);
+      toast.error(`Błąd podczas generowania pomysłu: ${e instanceof Error ? e.message : String(e)}`);
+      setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
     } finally {
       setIsLoading(false);
     }

@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
+import { streamEdgeFunction } from "@/lib/ai-stream";
+import { parseScriptResponse, previewScript } from "@/lib/ai-text";
 import { ScripterLogo } from "@/components/ScripterLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -35,28 +35,22 @@ const PowershellScriptGenerator = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-powershell-script', {
-        body: JSON.stringify({ prompt: currentPrompt }),
-      });
+      // Blok kodu bywa w trakcie strumienia jeszcze niedomkniety, wiec do
+      // podgladu obcinamy same znaczniki ``` i pokazujemy to, co juz przyszlo.
+      const fullText = await streamEdgeFunction(
+        "generate-powershell-script",
+        { prompt: currentPrompt },
+        (text) => setGeneratedScript(previewScript(text)),
+      );
 
-      if (error) {
-        console.error("Error invoking Edge Function:", error);
-        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
-        toast.error(`Błąd podczas generowania skryptu: ${message}`);
-        setExplanationText("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
-      } else if (data) {
-        // Assuming data is already parsed JSON from the Edge Function
-        setGeneratedScript(data.script || "");
-        setExplanationText(data.explanation || "");
-        toast.success("Skrypt PowerShell został wygenerowany!");
-      } else {
-        toast.error("Nie otrzymano odpowiedzi od generatora skryptów.");
-        setExplanationText("Nie otrzymano odpowiedzi od generatora skryptów.");
-      }
+      const { script, explanation } = parseScriptResponse(fullText);
+      setGeneratedScript(script);
+      setExplanationText(explanation);
+      toast.success("Skrypt PowerShell został wygenerowany!");
     } catch (e) {
-      console.error("Unexpected error:", e);
-      toast.error(`Wystąpił nieoczekiwany błąd: ${e instanceof Error ? e.message : String(e)}`);
-      setExplanationText("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+      console.error("Błąd generowania skryptu:", e);
+      toast.error(`Błąd podczas generowania skryptu: ${e instanceof Error ? e.message : String(e)}`);
+      setExplanationText("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
     } finally {
       setIsLoading(false);
     }

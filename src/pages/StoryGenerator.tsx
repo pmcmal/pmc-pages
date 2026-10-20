@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
+import { streamEdgeFunction } from "@/lib/ai-stream";
+import { DISCLAIMERS } from "@/lib/ai-text";
 import { StorytellerLogo } from "@/components/StorytellerLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -42,27 +42,19 @@ const StoryGenerator = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('generate-story', {
-        body: JSON.stringify({ genre: currentGenre, character: currentCharacter, event: currentEvent }),
-      });
+      const fullText = await streamEdgeFunction(
+        "generate-story",
+        { genre: currentGenre, character: currentCharacter, event: currentEvent },
+        setGeneratedStory,
+      );
 
-      if (error) {
-        console.error("Error invoking Edge Function:", error);
-        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
-        toast.error(`Błąd podczas generowania opowiadania: ${message}`);
-        setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
-      } else if (data) {
-        setGeneratedStory(data.story || "");
-        setDisclaimer(data.disclaimer || "");
-        toast.success("Opowiadanie zostało wygenerowane!");
-      } else {
-        toast.error("Nie otrzymano odpowiedzi od generatora opowiadań.");
-        setDisclaimer("Nie otrzymano odpowiedzi od generatora opowiadań.");
-      }
+      setGeneratedStory(fullText.trim());
+      setDisclaimer(DISCLAIMERS.story);
+      toast.success("Opowiadanie zostało wygenerowane!");
     } catch (e) {
-      console.error("Unexpected error:", e);
-      toast.error(`Wystąpił nieoczekiwany błąd: ${e instanceof Error ? e.message : String(e)}`);
-      setDisclaimer("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+      console.error("Błąd generowania opowiadania:", e);
+      toast.error(`Błąd podczas generowania opowiadania: ${e instanceof Error ? e.message : String(e)}`);
+      setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
     } finally {
       setIsLoading(false);
     }

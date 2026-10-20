@@ -6,8 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
-import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
+import { streamEdgeFunction } from "@/lib/ai-stream";
+import { DISCLAIMERS } from "@/lib/ai-text";
 import { PhilosopherLogo } from "@/components/PhilosopherLogo";
 import { SiteHomeButton } from "@/components/SiteHomeButton";
 import { PageFooter } from "@/components/PageFooter";
@@ -35,27 +35,19 @@ const PhilosopherCoach = () => {
     }
 
     try {
-      const { data, error } = await supabase.functions.invoke('philosopher-coach', {
-        body: JSON.stringify({ problem: currentProblem }),
-      });
+      const fullText = await streamEdgeFunction(
+        "philosopher-coach",
+        { problem: currentProblem },
+        setAdvice,
+      );
 
-      if (error) {
-        console.error("Error invoking Edge Function:", error);
-        const message = await getEdgeFunctionErrorMessage(error, "Nieznany błąd.");
-        toast.error(`Błąd podczas uzyskiwania porady: ${message}`);
-        setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
-      } else if (data) {
-        setAdvice(data.advice || "");
-        setDisclaimer(data.disclaimer || "");
-        toast.success("Porada została wygenerowana!");
-      } else {
-        toast.error("Nie otrzymano odpowiedzi od filozofa/coacha.");
-        setDisclaimer("Nie otrzymano odpowiedzi od filozofa/coacha.");
-      }
+      setAdvice(fullText.trim());
+      setDisclaimer(DISCLAIMERS.coach);
+      toast.success("Porada została wygenerowana!");
     } catch (e) {
-      console.error("Unexpected error:", e);
-      toast.error(`Wystąpił nieoczekiwany błąd: ${e instanceof Error ? e.message : String(e)}`);
-      setDisclaimer("Wystąpił nieoczekiwany błąd. Spróbuj ponownie.");
+      console.error("Błąd generowania porady:", e);
+      toast.error(`Błąd podczas uzyskiwania porady: ${e instanceof Error ? e.message : String(e)}`);
+      setDisclaimer("Wystąpił błąd podczas komunikacji z AI. Spróbuj ponownie.");
     } finally {
       setIsLoading(false);
     }
