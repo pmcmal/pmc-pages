@@ -1,24 +1,19 @@
 User-agent: Googlebot
 Allow: /
 Disallow: /admin
-Disallow: /orbita
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
-Disallow: /orbita
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /admin
-Disallow: /orbita
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /admin
-Disallow: /orbita
 
 User-agent: *
 Allow: /
 Disallow: /admin
-Disallow: /orbita

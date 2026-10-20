@@ -28,6 +28,12 @@ const MAX_SPEED = 72;
 const ACCEL = 0.9;
 
 const BLADE_HALF_WIDTH = 0.55;
+/**
+ * Promien zbierania krysztalu. Szerszy niz sam model, bo celowanie w locie
+ * z predkoscia kilkudziesieciu jednostek na sekunde ma byc satysfakcjonujace,
+ * a nie frustrujace.
+ */
+const ORB_PICKUP_RADIUS = 1.5;
 
 interface Gate {
   z: number;
@@ -38,6 +44,22 @@ interface Gate {
 interface Orb {
   mesh: THREE.Mesh;
   taken: boolean;
+}
+
+/**
+ * Czy w tej klatce minelismy plaszczyzne z = planeZ, a jesli tak, to w ktorym
+ * jej ulamku (0..1).
+ *
+ * Wczesniej zbieranie krysztalow i kolizja z bramka sprawdzaly tylko, czy
+ * gracz JEST blisko danego z. Przy 72 jednostkach na sekunde i 30 klatkach
+ * gracz pokonuje 2,4 jednostki w jednej klatce, czyli wiecej niz szerokosc
+ * okna - krysztal bywal przeskakiwany, a przez bramke dalo sie przeniknac.
+ * Sprawdzamy wiec przebyty odcinek, a nie pojedynczy punkt.
+ */
+export function crossedPlane(prevZ: number, currZ: number, planeZ: number): number | null {
+  if (planeZ > prevZ || planeZ < currZ) return null; // gracz leci w strone -z
+  const span = prevZ - currZ;
+  return span <= 1e-6 ? 0 : (prevZ - planeZ) / span;
 }
 
 /** Odleglosc punktu od odcinka srodek-krawedz pod katem `angle`. */
@@ -73,6 +95,7 @@ export class TunnelGame {
   private raf = 0;
   private lastTime = 0;
   private hudTimer = 0;
+  private prevPz = 0;
 
   /** Wejscie w zakresie -1..1, ustawiane przez klawiature albo dotyk. */
   public input = { x: 0, y: 0 };
@@ -343,7 +366,7 @@ export class TunnelGame {
         continue;
       }
       // kolizja tylko w cienkim plastrze wokol plaszczyzny bramki
-      if (Math.abs(gate.z - this.pz) < 0.9) {
+      if (crossedPlane(this.prevPz, this.pz, gate.z) !== null) {
         for (const angle of gate.angles) {
           if (distanceToBlade(this.px, this.py, angle) < BLADE_HALF_WIDTH + PLAYER_RADIUS) {
             this.running = false;
@@ -367,8 +390,8 @@ export class TunnelGame {
       }
       if (orb.taken) continue;
       if (
-        Math.abs(orb.mesh.position.z - this.pz) < 1.2 &&
-        Math.hypot(orb.mesh.position.x - this.px, orb.mesh.position.y - this.py) < 1.1
+        crossedPlane(this.prevPz, this.pz, orb.mesh.position.z) !== null &&
+        Math.hypot(orb.mesh.position.x - this.px, orb.mesh.position.y - this.py) < ORB_PICKUP_RADIUS
       ) {
         orb.taken = true;
         orb.mesh.visible = false;
