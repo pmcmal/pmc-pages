@@ -6,10 +6,24 @@ const REPO = "pmcmal/pmc-pages";
 // Te dwie listy musza byc identyczne z src/lib/promote-options.ts (ICON_OPTIONS / COLOR_OPTIONS).
 // Waliduja input zanim trafi jako literalny kod do Index.tsx - stad whitelist, nie wolny tekst.
 const ALLOWED_ICONS = [
-  "Terminal", "Brain", "ChefHat", "BookOpen", "CircuitBoard", "GraduationCap", "CloudSun", "Rocket",
-  "ShoppingCart", "Music", "Gamepad2", "FileText", "Code", "Database", "Globe", "Heart", "Star", "Zap",
-  "Camera", "Palette", "Puzzle", "Trophy", "Wrench", "BarChart", "Calendar", "Mail", "MessageSquare",
-  "Layers", "Compass", "Target", "Image", "Video", "Mic", "Book", "Clock", "Newspaper", "Sparkles",
+  "Terminal", "Code", "Cpu", "Database", "Server", "Bug", "GitBranch", "Braces",
+  "Command", "Keyboard", "Monitor", "Laptop", "HardDrive", "Network", "Bot", "Brain",
+  "Sparkles", "Atom", "Binary", "Music", "Headphones", "Mic", "Video", "Film",
+  "Camera", "Image", "Radio", "Speaker", "Disc3", "Gamepad2", "Joystick", "Dices",
+  "Puzzle", "Trophy", "Target", "Swords", "Rocket", "FileText", "File", "Files",
+  "BookOpen", "Book", "Notebook", "Newspaper", "ScrollText", "ClipboardList", "StickyNote", "PenTool",
+  "Pencil", "ShoppingCart", "ShoppingBag", "Store", "CreditCard", "Wallet", "Package", "Tag",
+  "Receipt", "Coins", "Banknote", "User", "Users", "Mail", "MessageSquare", "MessageCircle",
+  "Phone", "Send", "Share2", "Heart", "Star", "ThumbsUp", "ChefHat", "Utensils",
+  "UtensilsCrossed", "Coffee", "Pizza", "Apple", "Soup", "CupSoda", "Cake", "CloudSun",
+  "Cloud", "Sun", "Moon", "CloudRain", "Snowflake", "Umbrella", "Leaf", "TreePine",
+  "Flower2", "Mountain", "Waves", "CircuitBoard", "Zap", "Battery", "Plug", "Lightbulb",
+  "Antenna", "Wrench", "Hammer", "Settings", "Cog", "GraduationCap", "School", "BookMarked",
+  "Library", "Presentation", "BarChart", "BarChart3", "LineChart", "PieChart", "TrendingUp", "Activity",
+  "Gauge", "Calendar", "CalendarDays", "Clock", "Timer", "AlarmClock", "ListTodo", "CheckSquare",
+  "Kanban", "MapPin", "Map", "Globe", "Compass", "Plane", "Car", "Bike",
+  "Train", "Navigation", "Layers", "Box", "Archive", "Folder", "Search", "Filter",
+  "Shield", "Lock", "Key", "Palette", "Brush", "Scissors", "Ruler", "Flame", "Droplet", "Dumbbell", "Stethoscope", "Pill", "Dog", "Cat",
 ];
 const ALLOWED_COLORS = [
   "sky", "violet", "orange", "pink", "emerald", "indigo", "purple", "green",

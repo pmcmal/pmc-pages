@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronsUpDown } from "lucide-react";
 import type { Session } from "@supabase/supabase-js";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -14,8 +15,17 @@ import { supabase } from "@/integrations/supabase/client";
 import { getEdgeFunctionErrorMessage } from "@/utils/edge-function-error";
 import { getAllPosts, autoLinkBareDomains, type BlogPost } from "@/lib/blog";
 import { sandboxApps, type SandboxApp } from "@/lib/sandbox-apps";
-import { ICON_OPTIONS, COLOR_OPTIONS, COLOR_SWATCH_CLASS } from "@/lib/promote-options";
+import { ICON_OPTIONS, COLOR_OPTIONS, COLOR_SWATCH_CLASS, suggestTile } from "@/lib/promote-options";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 
 // Podmienia width="N" w konkretnym tagu <img src="..."> na nowa wartosc (albo dodaje atrybut, jesli go nie ma)
 function updateImageWidthInMarkdown(markdown: string, src: string, newWidth: number): string {
@@ -41,8 +51,14 @@ const kebabToCamel = (slug: string) => slug.replace(/-([a-z0-9])/g, (_, c) => c.
 
 const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (key: string) => void }) => {
   const [open, setOpen] = useState(false);
-  const [icon, setIcon] = useState("");
-  const [color, setColor] = useState("");
+  // Ikona i kolor sa proponowane od razu po otwarciu, na podstawie klucza,
+  // tytulu i opisu apki - przy liscie ponad stu ikon szukanie od zera bylo
+  // najbardziej uciazliwym krokiem. Oczywiscie mozna je zmienic.
+  const suggested = useMemo(() => suggestTile(app.key, app.title, app.description), [app]);
+  const [icon, setIcon] = useState(suggested.icon);
+  const [color, setColor] = useState<string>(suggested.color);
+  const [iconPickerOpen, setIconPickerOpen] = useState(false);
+  const SelectedIcon = ICON_OPTIONS[icon];
   const [category, setCategory] = useState<"ai" | "other">("other");
   const [titlePl, setTitlePl] = useState(app.title);
   const [descriptionPl, setDescriptionPl] = useState(app.description);
@@ -94,20 +110,45 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <Label>Ikona</Label>
-              <Select value={icon} onValueChange={setIcon}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Wybierz ikonę" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.entries(ICON_OPTIONS).map(([name, Icon]) => (
-                    <SelectItem key={name} value={name}>
-                      <span className="flex items-center gap-2">
-                        <Icon className="w-4 h-4" /> {name}
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {/* Zwykla lista rozwijana przy ponad stu ikonach byla nie do
+                  przejscia, wiec wybor idzie przez pole z wyszukiwarka. */}
+              <Popover open={iconPickerOpen} onOpenChange={setIconPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    <span className="flex items-center gap-2 truncate">
+                      {SelectedIcon && <SelectedIcon className="w-4 h-4 shrink-0" />}
+                      <span className="truncate">{icon || "Wybierz ikonę"}</span>
+                    </span>
+                    <ChevronsUpDown className="w-4 h-4 opacity-50 shrink-0" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-64" align="start">
+                  <Command>
+                    <CommandInput placeholder="Szukaj ikony..." />
+                    <CommandList>
+                      <CommandEmpty>Nie znaleziono ikony.</CommandEmpty>
+                      <CommandGroup>
+                        {Object.entries(ICON_OPTIONS).map(([name, Icon]) => (
+                          <CommandItem
+                            key={name}
+                            value={name}
+                            onSelect={() => {
+                              setIcon(name);
+                              setIconPickerOpen(false);
+                            }}
+                          >
+                            <Icon className="w-4 h-4 mr-2 shrink-0" />
+                            {name}
+                            {name === suggested.icon && (
+                              <span className="ml-auto text-xs text-muted-foreground">sugestia</span>
+                            )}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div>
               <Label>Kolor</Label>
