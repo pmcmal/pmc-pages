@@ -3,6 +3,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const MAX_FIELD_LENGTH = 200;
 
+// lrclib prosi o identyfikacje aplikacji w User-Agent
+const USER_AGENT = "pmc-pages (https://pmcmalec.vercel.app)";
+
 function corsHeadersFor(req: Request) {
   const origin = req.headers.get("origin") || "";
   const allowOrigin = ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0];
@@ -12,15 +15,8 @@ function corsHeadersFor(req: Request) {
   };
 }
 
-// lyrics.ovh nie radzi sobie z polskimi znakami: "Dawid Podsiadło" / "Trójkąty
-// i kwadraty" zwraca 404, a dokladnie ten sam utwor zapisany bez ogonkow oddaje
-// pelny tekst. To samo dotyczy Maanamu, Myslovitz czy Lady Pank - czyli
-// praktycznie calego polskiego repertuaru. Dlatego po nieudanym zapytaniu
-// probujemy jeszcze raz z transliteracja.
-//
-// NFD rozklada wiekszosc liter na znak bazowy plus znak diakrytyczny, ktory
-// potem usuwamy - ale "ł" i "Ł" sie nie rozkladaja, wiec trzeba je podmienic
-// recznie.
+// "ł" i "Ł" nie rozkladaja sie przez NFD, wiec trzeba je podmienic recznie;
+// reszte diakrytykow NFD rozbija na znak bazowy i znak laczacy do usuniecia.
 function stripDiacritics(text: string): string {
   return text
     .replace(/ł/g, "l")
@@ -29,15 +25,45 @@ function stripDiacritics(text: string): string {
     .replace(/[̀-ͯ]/g, "");
 }
 
-async function fetchLyrics(artist: string, title: string): Promise<string | null> {
+function usable(text: unknown): string | null {
+  return typeof text === "string" && text.trim() ? text : null;
+}
+
+// --- Zrodlo 1: lrclib.net ---
+// Darmowe, bez klucza i z duzo lepszym polskim repertuarem niz lyrics.ovh.
+// Radzi sobie tez z polskimi znakami, wiec nie trzeba nic transliterowac.
+async function fromLrclibExact(artist: string, title: string): Promise<string | null> {
+  const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}`;
+  const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+  if (!response.ok) return null;
+  const data = await response.json();
+  return usable(data?.plainLyrics);
+}
+
+// Dopasowanie rozmyte - ratuje literowki i brakujace ogonki
+// (np. "Podsiadło Trojkaty" trafia w "Trójkąty i Kwadraty").
+async function fromLrclibSearch(artist: string, title: string): Promise<string | null> {
+  const url = `https://lrclib.net/api/search?q=${encodeURIComponent(`${artist} ${title}`)}`;
+  const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+  if (!response.ok) return null;
+  const results = await response.json();
+  if (!Array.isArray(results)) return null;
+  for (const entry of results) {
+    const lyrics = usable(entry?.plainLyrics);
+    if (lyrics) return lyrics;
+  }
+  return null;
+}
+
+// --- Zrodlo 2: lyrics.ovh ---
+// Zostaje jako zapas. Nie radzi sobie z diakrytykami: "Dawid Podsiadło" zwraca
+// 404, a ten sam utwor bez ogonkow oddaje tekst - stad druga proba.
+async function fromLyricsOvh(artist: string, title: string): Promise<string | null> {
   const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
   const response = await fetch(url);
-
-  if (response.status === 404) return null;
-  if (!response.ok) throw new Error(`lyrics.ovh returned ${response.status}`);
-
+  if (!response.ok) return null;
   const data = await response.json();
-  return typeof data?.lyrics === "string" && data.lyrics.trim() ? data.lyrics : null;
+  return usable(data?.lyrics);
 }
 
 serve(async (req) => {
@@ -62,28 +88,38 @@ serve(async (req) => {
       });
     }
 
-    let lyrics = await fetchLyrics(artist, title);
+    const asciiArtist = stripDiacritics(artist);
+    const asciiTitle = stripDiacritics(title);
+    const hasDiacritics = asciiArtist !== artist || asciiTitle !== title;
 
-    // Druga proba bez polskich znakow - dla rodzimego repertuaru to zwykle ona
-    // zwraca wynik.
-    if (!lyrics) {
-      const asciiArtist = stripDiacritics(artist);
-      const asciiTitle = stripDiacritics(title);
-      if (asciiArtist !== artist || asciiTitle !== title) {
-        lyrics = await fetchLyrics(asciiArtist, asciiTitle);
+    const attempts: (() => Promise<string | null>)[] = [
+      () => fromLrclibExact(artist, title),
+      () => fromLrclibSearch(artist, title),
+      () => fromLyricsOvh(artist, title),
+    ];
+    if (hasDiacritics) {
+      attempts.push(() => fromLyricsOvh(asciiArtist, asciiTitle));
+    }
+
+    for (const attempt of attempts) {
+      try {
+        const lyrics = await attempt();
+        if (lyrics) {
+          return new Response(JSON.stringify({ lyrics }), {
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            status: 200,
+          });
+        }
+      } catch (error) {
+        // Pojedyncze zrodlo potrafi oddac 503 albo zerwac polaczenie - to nie
+        // powod, zeby przerywac caly lancuch.
+        console.error("Zrodlo tekstow zawiodlo:", error);
       }
     }
 
-    if (!lyrics) {
-      return new Response(JSON.stringify({ error: "Nie znaleziono tekstu dla tego utworu." }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 404,
-      });
-    }
-
-    return new Response(JSON.stringify({ lyrics }), {
+    return new Response(JSON.stringify({ error: "Nie znaleziono tekstu dla tego utworu." }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 200,
+      status: 404,
     });
   } catch (error) {
     console.error("Error fetching lyrics:", error);
