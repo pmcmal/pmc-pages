@@ -49,10 +49,9 @@ jobs:
             echo "Wdrazam pojedyncza funkcje: $SINGLE"
             supabase functions deploy "$SINGLE" --project-ref "$PROJECT_ID"
           else
-            for dir in supabase/functions/*/; do
-              name=$(basename "$dir")
-              echo "::group::$name"
-              supabase functions deploy "$name" --project-ref "$PROJECT_ID"
-              echo "::endgroup::"
-            done
+            # Wywolanie bez nazwy wdraza wszystkie funkcje naraz. Iterowanie po
+            # katalogach bylo bledem: wpadal w nie tez _shared, ktory nie jest
+            # funkcja (nazwa musi zaczynac sie od litery), tylko wspolnym kodem
+            # doklejanym do funkcji, ktore go importuja.
+            supabase functions deploy --project-ref "$PROJECT_ID"
           fi
