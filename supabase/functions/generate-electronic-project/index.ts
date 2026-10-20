@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { extractCodeFence, splitSections, toList, tryJson } from "../_shared/ai-text.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const MAX_PROMPT_LENGTH = 1000;
@@ -13,11 +14,8 @@ function corsHeadersFor(req: Request) {
   };
 }
 
-// Niektore darmowe modele owijaja odpowiedz w blok markdown ```json ... ``` mimo instrukcji w promptcie
-function extractJson(text: string): string {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  return match ? match[1] : text;
-}
+const DISCLAIMER =
+  "To pomysl wygenerowany przez AI - przed budowa zweryfikuj komponenty, polaczenia i bezpieczenstwo.";
 
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
@@ -58,17 +56,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś ekspertem od elektroniki i generujesz pomysły na projekty elektroniczne. Twoim zadaniem jest tworzenie kreatywnych, ale realistycznych i możliwych do wykonania pomysłów na projekty z wykorzystaniem Raspberry Pi, Arduino lub prostych układów do lutowania. Pomysł powinien zawierać:
-            1. Krótki opis projektu.
-            2. Listę głównych komponentów potrzebnych do jego zbudowania (np. Arduino Uno, czujnik temperatury DHT11, dioda LED, rezystor 220 Ohm).
-            3. Ogólny zarys działania.
-            4. Jeśli projekt wymaga programowania (np. Arduino, Raspberry Pi), dołącz przykładowy, krótki kod (np. szkic Arduino, prosty skrypt Python), umieszczony w bloku kodu. Jeśli kod nie jest potrzebny, pole 'exampleCode' powinno być puste.
-            
-            Zawsze zwracaj odpowiedź w formacie JSON z następującymi polami:
-            - 'projectIdea' (string): Krótki opis projektu i zarys działania.
-            - 'componentsNeeded' (array of strings): Lista potrzebnych komponentów.
-            - 'exampleCode' (string): Przykładowy kod, jeśli dotyczy. Jeśli nie, pusty string.
-            - 'disclaimer' (string): Krótkie ostrzeżenie, że to jest pomysł AI i wymaga dalszego planowania oraz weryfikacji.`,
+            content: `Jesteś ekspertem od elektroniki i generujesz pomysły na projekty elektroniczne - kreatywne, ale realistyczne i możliwe do wykonania na Raspberry Pi, Arduino lub prostych układach do lutowania. Odpowiadaj WYŁĄCZNIE zwykłym tekstem w dokładnie takiej strukturze:\n\n### OPIS\n(krótki opis projektu i ogólny zarys działania)\n\n### KOMPONENTY\n(lista potrzebnych części, każda w osobnej linii zaczynającej się od myślnika, np. - Arduino Uno)\n\n### KOD\n(jeśli projekt wymaga programowania, przykładowy krótki kod w bloku kodu markdown; jeśli kod nie jest potrzebny, napisz: brak)\n\nNie zwracaj JSON-a.`,
           },
           {
             role: "user",
@@ -96,31 +84,35 @@ serve(async (req) => {
       throw new Error("Model AI nie zwrocil tresci - darmowy router byl chwilowo przeciazony. Sprobuj ponownie za chwile.");
     }
 
-    let parsedResponse;
-    const jsonCandidate = extractJson(aiResponseContent);
-    try {
-      parsedResponse = JSON.parse(jsonCandidate);
-    } catch {
-      try {
-        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
-      } catch (e) {
-        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-        parsedResponse = {
-          projectIdea: aiResponseContent,
-          componentsNeeded: [],
-          exampleCode: "",
-          disclaimer: "Przepraszam, nie udało mi się sformułować pomysłu na projekt w oczekiwanym formacie. Proszę dokładnie sprawdzić wygenerowany tekst. Pamiętaj, że to jest tylko pomysł i wymaga dalszego planowania.",
-        };
-      }
+    // Tekst z sekcjami zamiast JSON-a: kod Arduino/Python wpychany wczesniej
+    // w pole stringa byl najczestsza przyczyna bledu parsowania.
+    const legacy = tryJson(aiResponseContent, jsonrepair, "projectIdea");
+    let projectIdea = String(legacy?.projectIdea ?? "").trim();
+    const legacyComponents = legacy?.componentsNeeded;
+    let componentsNeeded = Array.isArray(legacyComponents) ? legacyComponents.map(String) : [];
+    let exampleCode = String(legacy?.exampleCode ?? "").trim();
+
+    if (!projectIdea) {
+      const sections = splitSections(aiResponseContent);
+      const codeSection = sections["KOD"] ?? "";
+      const fromCodeSection = extractCodeFence(codeSection);
+      const fromWhole = extractCodeFence(aiResponseContent);
+
+      projectIdea = sections["OPIS"] ?? aiResponseContent.trim();
+      componentsNeeded = toList(sections["KOMPONENTY"] ?? "");
+      exampleCode = fromCodeSection.code || fromWhole.code;
+      if (/^brak\.?$/i.test(codeSection.trim())) exampleCode = "";
     }
 
-    return new Response(JSON.stringify(parsedResponse), {
+    const payload = { projectIdea, componentsNeeded, exampleCode, disclaimer: DISCLAIMER };
+
+    return new Response(JSON.stringify(payload), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
     console.error("Error generating electronic project idea:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

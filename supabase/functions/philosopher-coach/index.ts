@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { tryJson } from "../_shared/ai-text.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const MAX_PROMPT_LENGTH = 1000;
@@ -13,11 +14,8 @@ function corsHeadersFor(req: Request) {
   };
 }
 
-// Niektore darmowe modele owijaja odpowiedz w blok markdown ```json ... ``` mimo instrukcji w promptcie
-function extractJson(text: string): string {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  return match ? match[1] : text;
-}
+const DISCLAIMER =
+  "To porada wygenerowana przez AI i nie zastepuje profesjonalnej pomocy.";
 
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
@@ -59,7 +57,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś profesjonalnym filozofem i coachem życiowym. Twoim zadaniem jest udzielanie głębokich, przemyślanych i inspirujących porad życiowych na podstawie problemów przedstawionych przez użytkownika. Skup się na perspektywie filozoficznej, zachęcaj do refleksji i oferuj konstruktywne podejście. Zawsze zwracaj odpowiedź w formacie JSON z dwoma polami: 'advice' (zawierającym Twoją poradę) i 'disclaimer' (zawierającym krótkie ostrzeżenie, że to jest porada AI i nie zastępuje profesjonalnej pomocy).`,
+            content: `Jesteś profesjonalnym filozofem i coachem życiowym. Twoim zadaniem jest udzielanie głębokich, przemyślanych i inspirujących porad życiowych na podstawie problemów przedstawionych przez użytkownika. Skup się na perspektywie filozoficznej, zachęcaj do refleksji i oferuj konstruktywne podejście. Zwróć WYŁĄCZNIE samą poradę, zwykłym tekstem. Nie zwracaj JSON-a ani bloków kodu.`,
           },
           {
             role: "user",
@@ -87,29 +85,18 @@ serve(async (req) => {
       throw new Error("Model AI nie zwrocil tresci - darmowy router byl chwilowo przeciazony. Sprobuj ponownie za chwile.");
     }
 
-    let parsedResponse;
-    const jsonCandidate = extractJson(aiResponseContent);
-    try {
-      parsedResponse = JSON.parse(jsonCandidate);
-    } catch {
-      try {
-        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
-      } catch (e) {
-        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-        parsedResponse = {
-          advice: "Przepraszam, nie udało mi się sformułować porady w oczekiwanym formacie. Proszę spróbować ponownie.",
-          disclaimer: "To jest porada wygenerowana przez AI i nie zastępuje profesjonalnej pomocy.",
-        };
-      }
-    }
+    // Porada to czysty tekst - JSON byl tu zbedna warstwa, ktora potrafila
+    // sie rozsypac na cudzyslowach i znakach nowej linii.
+    const legacy = tryJson(aiResponseContent, jsonrepair, "advice");
+    const advice = String(legacy?.advice ?? aiResponseContent).trim();
 
-    return new Response(JSON.stringify(parsedResponse), {
+    return new Response(JSON.stringify({ advice, disclaimer: DISCLAIMER }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
     console.error("Error generating philosophical advice:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

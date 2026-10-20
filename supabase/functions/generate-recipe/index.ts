@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { splitSections, tryJson } from "../_shared/ai-text.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const MAX_PROMPT_LENGTH = 1000;
@@ -11,12 +12,6 @@ function corsHeadersFor(req: Request) {
     'Access-Control-Allow-Origin': allowOrigin,
     'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   };
-}
-
-// Niektore darmowe modele owijaja odpowiedz w blok markdown ```json ... ``` mimo instrukcji w promptcie
-function extractJson(text: string): string {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  return match ? match[1] : text;
 }
 
 serve(async (req) => {
@@ -59,7 +54,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania. Jeśli użytkownik poda konkretne składniki, wykorzystaj je. Jeśli użytkownik poprosi o "zaskoczenie" lub poda ogólne zapytanie, wygeneruj ciekawy przepis z losowych składników. Zawsze zwracaj przepis w formacie JSON z polami: \`recipeText\` (zawierającym pełny przepis z listą składników i instrukcjami) oraz \`conversionTable\` (zawierającym prostą tabelę przeliczników wagi na popularne miary, np. łyżeczki, szklanki, dla kilku podstawowych składników jak mąka, cukier, woda, olej. Podaj wartości w gramach i odpowiadające im miary domowe. Upewnij się, że przepis jest łatwy do wykonania.`,
+            content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania. Jeśli użytkownik poda konkretne składniki, wykorzystaj je. Jeśli poprosi o zaskoczenie lub poda ogólne zapytanie, wygeneruj ciekawy przepis z losowych składników. Odpowiadaj WYŁĄCZNIE zwykłym tekstem w dokładnie takiej strukturze:\n\n### PRZEPIS\n(pełny przepis: lista składników i instrukcje krok po kroku)\n\n### PRZELICZNIKI\n(prosta tabela przeliczników wagi na miary domowe - łyżeczki, szklanki - dla kilku podstawowych składników jak mąka, cukier, woda, olej)\n\nNie zwracaj JSON-a. Upewnij się, że przepis jest łatwy do wykonania.`,
           },
           {
             role: "user",
@@ -87,29 +82,25 @@ serve(async (req) => {
       throw new Error("Model AI nie zwrocil tresci - darmowy router byl chwilowo przeciazony. Sprobuj ponownie za chwile.");
     }
 
-    let parsedResponse;
-    const jsonCandidate = extractJson(aiResponseContent);
-    try {
-      parsedResponse = JSON.parse(jsonCandidate);
-    } catch {
-      try {
-        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
-      } catch (e) {
-        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-        parsedResponse = {
-          recipeText: aiResponseContent,
-          conversionTable: "",
-        };
-      }
+    // Model oddaje tekst z naglowkami sekcji zamiast JSON-a - przepisy pelne
+    // cudzyslowow i lamanych linii nie przechodzily przez JSON.parse.
+    const legacy = tryJson(aiResponseContent, jsonrepair, "recipeText");
+    let recipeText = String(legacy?.recipeText ?? "").trim();
+    let conversionTable = String(legacy?.conversionTable ?? "").trim();
+
+    if (!recipeText) {
+      const sections = splitSections(aiResponseContent);
+      recipeText = sections["PRZEPIS"] ?? aiResponseContent.trim();
+      conversionTable = sections["PRZELICZNIKI"] ?? "";
     }
 
-    return new Response(JSON.stringify(parsedResponse), {
+    return new Response(JSON.stringify({ recipeText, conversionTable }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
     console.error("Error generating recipe:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

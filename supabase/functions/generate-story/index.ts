@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { tryJson } from "../_shared/ai-text.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const MAX_FIELD_LENGTH = 300;
@@ -13,11 +14,8 @@ function corsHeadersFor(req: Request) {
   };
 }
 
-// Niektore darmowe modele owijaja odpowiedz w blok markdown ```json ... ``` mimo instrukcji w promptcie
-function extractJson(text: string): string {
-  const match = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-  return match ? match[1] : text;
-}
+const DISCLAIMER =
+  "To opowiadanie wygenerowala AI, a jego dlugosc ogranicza pojedyncza odpowiedz modelu.";
 
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
@@ -64,7 +62,7 @@ serve(async (req) => {
         messages: [
           {
             role: "system",
-            content: `Jesteś utalentowanym pisarzem. Twoim zadaniem jest generowanie spójnych, wciągających i **szczegółowych opowiadań, podzielonych na logiczne akapity**, na podstawie podanych przez użytkownika informacji. Opowiadanie powinno być tak długie, jak to możliwe w ramach jednej odpowiedzi API (około 1000-3000 słów). Zawsze zwracaj odpowiedź w formacie JSON z dwoma polami: 'story' (zawierającym wygenerowane opowiadanie) i 'disclaimer' (zawierającym krótkie ostrzeżenie, że to jest opowiadanie AI i jego długość jest ograniczona do jednej odpowiedzi API).`,
+            content: `Jesteś utalentowanym pisarzem. Twoim zadaniem jest generowanie spójnych, wciągających i **szczegółowych opowiadań, podzielonych na logiczne akapity**, na podstawie podanych przez użytkownika informacji. Opowiadanie powinno być tak długie, jak to możliwe w ramach jednej odpowiedzi (około 1000-3000 słów). Zwróć WYŁĄCZNIE samo opowiadanie, zwykłym tekstem. Nie zwracaj JSON-a, nie dodawaj tytułu sekcji, komentarzy ani bloków kodu.`,
           },
           {
             role: "user",
@@ -92,29 +90,18 @@ serve(async (req) => {
       throw new Error("Model AI nie zwrocil tresci - darmowy router byl chwilowo przeciazony. Sprobuj ponownie za chwile.");
     }
 
-    let parsedResponse;
-    const jsonCandidate = extractJson(aiResponseContent);
-    try {
-      parsedResponse = JSON.parse(jsonCandidate);
-    } catch {
-      try {
-        parsedResponse = JSON.parse(jsonrepair(jsonCandidate));
-      } catch (e) {
-        console.error("Failed to parse AI response as JSON:", aiResponseContent, e);
-        parsedResponse = {
-          story: aiResponseContent,
-          disclaimer: "Przepraszam, nie udało mi się sformułować opowiadania w oczekiwanym formacie. Proszę dokładnie sprawdzić wygenerowany tekst. Opowiadanie może być skrócone, ponieważ jego długość jest ograniczona do jednej odpowiedzi API.",
-        };
-      }
-    }
+    // Opowiadanie to czysty tekst - nie ma po co przepuszczac go przez JSON,
+    // bo to wlasnie escapowanie cudzyslowow i nowych linii sie sypalo.
+    const legacy = tryJson(aiResponseContent, jsonrepair, "story");
+    const story = String(legacy?.story ?? aiResponseContent).trim();
 
-    return new Response(JSON.stringify(parsedResponse), {
+    return new Response(JSON.stringify({ story, disclaimer: DISCLAIMER }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
   } catch (error) {
     console.error("Error generating story:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });
