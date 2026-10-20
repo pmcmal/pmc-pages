@@ -4,6 +4,8 @@ export interface BlogPost {
   date: string;
   excerpt: string;
   content: string;
+  /** Szkic nie pojawia sie na blogu - czeka w panelu na dokonczenie i publikacje. */
+  draft: boolean;
 }
 
 function parseFrontmatter(raw: string): { data: Record<string, string>; content: string } {
@@ -38,7 +40,7 @@ const translationModules = import.meta.glob("/content/blog/*.en.md", {
   eager: true,
 }) as Record<string, string>;
 
-export function getAllPosts(): BlogPost[] {
+function readPosts(): BlogPost[] {
   const posts = Object.entries(modules)
     .filter(([path]) => !path.endsWith(".en.md"))
     .map(([path, raw]) => {
@@ -50,9 +52,24 @@ export function getAllPosts(): BlogPost[] {
         date: data.date || "",
         excerpt: data.excerpt || "",
         content,
+        draft: data.draft === "true",
       };
     });
   return posts.sort((a, b) => (a.date < b.date ? 1 : -1));
+}
+
+/**
+ * Domyslnie zwraca tylko opublikowane wpisy - blog i strona glowna nie moga
+ * pokazac szkicu. Panel admina wola to z `true`, zeby widziec komplet.
+ */
+export function getAllPosts(includeDrafts = false): BlogPost[] {
+  const posts = readPosts();
+  return includeDrafts ? posts : posts.filter((p) => !p.draft);
+}
+
+/** Szkice czekajace na dokonczenie - uzywane w panelu admina. */
+export function getDraftPosts(): BlogPost[] {
+  return readPosts().filter((p) => p.draft);
 }
 
 export function getPostBySlug(slug: string): BlogPost | undefined {
@@ -72,6 +89,7 @@ export function getPostTranslation(slug: string): BlogPost | undefined {
     date: data.date || "",
     excerpt: data.excerpt || "",
     content,
+    draft: data.draft === "true",
   };
 }
 

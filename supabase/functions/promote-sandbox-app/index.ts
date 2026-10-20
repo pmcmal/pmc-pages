@@ -84,6 +84,26 @@ interface PromoteBody {
   descriptionPl: string;
   titleEn: string;
   descriptionEn: string;
+  /**
+   * Opcjonalny szkic wpisu na bloga o promowanej apce. Leci w tym samym
+   * commicie co kafelek, zeby jedna akcja = jeden deploy.
+   */
+  draft?: { slug: string; title: string; excerpt: string; content: string };
+}
+
+const MAX_DRAFT_LENGTH = 20000;
+
+function validateDraft(draft: PromoteBody["draft"]): string | null {
+  if (!draft) return null;
+  if (!draft.slug || !/^[a-z0-9-]+$/.test(draft.slug)) {
+    return "Slug szkicu moze zawierac tylko male litery, cyfry i myslniki";
+  }
+  if (!draft.title?.trim()) return "Szkic musi miec tytul";
+  if (!draft.content?.trim()) return "Szkic musi miec tresc";
+  if (draft.content.length > MAX_DRAFT_LENGTH) {
+    return `Tresc szkicu jest za dluga (max ${MAX_DRAFT_LENGTH} znakow)`;
+  }
+  return null;
 }
 
 function validateBody(body: Partial<PromoteBody>): string | null {
@@ -275,7 +295,7 @@ serve(async (req) => {
 
   try {
     const body = (await req.json()) as Partial<PromoteBody>;
-    const validationError = validateBody(body);
+    const validationError = validateBody(body) ?? validateDraft(body.draft);
     if (validationError) {
       return new Response(JSON.stringify({ error: validationError }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -314,18 +334,29 @@ serve(async (req) => {
     const newSandbox = removeSandboxAppEntry(sandboxFile.content, sandboxKey);
     const newRobots = removeRobotsDisallow(robotsFile.content, path);
 
-    const commitMessage = `Przenies "${titlePl}" z piaskownicy na strone glowna`;
+    const files = [
+      { path: indexPath, content: newIndex },
+      { path: i18nPath, content: newI18n },
+      { path: sandboxPath, content: newSandbox },
+      { path: robotsPath, content: newRobots },
+    ];
 
-    await commitFiles(
-      githubHeaders,
-      [
-        { path: indexPath, content: newIndex },
-        { path: i18nPath, content: newI18n },
-        { path: sandboxPath, content: newSandbox },
-        { path: robotsPath, content: newRobots },
-      ],
-      commitMessage,
-    );
+    const draft = body.draft;
+    if (draft) {
+      // "draft: true" sprawia, ze wpis nie pokazuje sie na blogu - czeka
+      // w panelu na dokonczenie i publikacje.
+      const date = new Date().toISOString().split("T")[0];
+      const markdown =
+        `---\ntitle: ${draft.title.trim()}\ndate: ${date}\n` +
+        `excerpt: ${(draft.excerpt ?? "").trim()}\ndraft: true\n---\n\n${draft.content.trim()}\n`;
+      files.push({ path: `content/blog/${draft.slug}.md`, content: markdown });
+    }
+
+    const commitMessage = draft
+      ? `Przenies "${titlePl}" z piaskownicy na strone glowna i dodaj szkic wpisu`
+      : `Przenies "${titlePl}" z piaskownicy na strone glowna`;
+
+    await commitFiles(githubHeaders, files, commitMessage);
 
     return new Response(JSON.stringify({ success: true }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

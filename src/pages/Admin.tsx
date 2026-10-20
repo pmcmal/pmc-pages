@@ -66,6 +66,34 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
   const [descriptionEn, setDescriptionEn] = useState("");
   const [isPromoting, setIsPromoting] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [makeDraft, setMakeDraft] = useState(true);
+
+  /**
+   * Pisze szkic wpisu o promowanej apce. Zwraca markdown albo null, gdy sie
+   * nie udalo - wtedy promowanie i tak idzie dalej, bo kafelek jest wazniejszy
+   * niz szkic, ktory mozna dopisac pozniej recznie.
+   */
+  const generateDraft = async (): Promise<string | null> => {
+    try {
+      const { data, error } = await supabase.functions.invoke("blog-ai-assist", {
+        body: {
+          instruction:
+            "Napisz krótki wpis na blog o tym projekcie: po polsku, w pierwszej osobie, 3-5 akapitów. " +
+            "Opisz po co powstał, co robi i co było ciekawe w robieniu go. Zwróć sam markdown treści, " +
+            "bez nagłówka H1 z tytułem i bez wstępów typu 'Oto wpis'.",
+          title: titlePl.trim(),
+          content: `Nazwa projektu: ${titlePl.trim()}\nOpis: ${descriptionPl.trim()}\nAdres podstrony: ${app.path}`,
+        },
+      });
+      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
+      if (data?.error) throw new Error(data.error);
+      const text = String(data?.result ?? "").trim();
+      return text || null;
+    } catch (e) {
+      toast.info(`Szkic wpisu się nie udał: ${e instanceof Error ? e.message : String(e)}`);
+      return null;
+    }
+  };
 
   // Tytul i opis po angielsku sa tlumaczone automatycznie po otwarciu
   // formularza. Jedno wywolanie zalatwia oba pola - darmowy limit OpenRoutera
@@ -126,6 +154,8 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
     }
     setIsPromoting(true);
     try {
+      const draftContent = makeDraft ? await generateDraft() : null;
+
       const { data, error } = await supabase.functions.invoke("promote-sandbox-app", {
         body: {
           key: kebabToCamel(app.key),
@@ -138,6 +168,14 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
           descriptionPl: descriptionPl.trim(),
           titleEn: titleEn.trim(),
           descriptionEn: descriptionEn.trim(),
+          draft: draftContent
+            ? {
+                slug: slugify(titlePl.trim()),
+                title: titlePl.trim(),
+                excerpt: descriptionPl.trim(),
+                content: draftContent,
+              }
+            : undefined,
         },
       });
       if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
@@ -269,8 +307,27 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
               />
             </div>
           </div>
+          <label className="flex items-start gap-2 text-sm cursor-pointer">
+            <input
+              type="checkbox"
+              checked={makeDraft}
+              onChange={(e) => setMakeDraft(e.target.checked)}
+              className="mt-0.5"
+            />
+            <span>
+              Przygotuj też szkic wpisu na bloga
+              <span className="block text-xs text-gray-500 dark:text-gray-400">
+                Trafi do „Oczekujących szkiców" — nie pokaże się na blogu, dopóki go nie opublikujesz.
+              </span>
+            </span>
+          </label>
+
           <Button onClick={handlePromote} disabled={isPromoting} className="w-full">
-            {isPromoting ? "Przenoszenie..." : "Potwierdź i przenieś na stronę główną"}
+            {isPromoting
+              ? makeDraft
+                ? "Przenoszę i piszę szkic..."
+                : "Przenoszenie..."
+              : "Potwierdź i przenieś na stronę główną"}
           </Button>
         </div>
       )}
@@ -357,7 +414,7 @@ const LoginForm = () => {
   );
 };
 
-const emptyForm = { title: "", slug: "", excerpt: "", content: "", date: "" };
+const emptyForm = { title: "", slug: "", excerpt: "", content: "", date: "", draft: false };
 
 const Editor = ({ session }: { session: Session }) => {
   useIdleLogout();
@@ -366,7 +423,8 @@ const Editor = ({ session }: { session: Session }) => {
   const [deletingSlug, setDeletingSlug] = useState<string | null>(null);
   const [slugTouched, setSlugTouched] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [posts, setPosts] = useState<BlogPost[]>(getAllPosts());
+  // true - panel widzi tez szkice, blog i strona glowna ich nie pokazuja
+  const [posts, setPosts] = useState<BlogPost[]>(getAllPosts(true));
   const [sandbox, setSandbox] = useState<SandboxApp[]>(sandboxApps);
   const [instruction, setInstruction] = useState("");
   const [aiResult, setAiResult] = useState("");
@@ -433,8 +491,12 @@ const Editor = ({ session }: { session: Session }) => {
     if (!slugTouched) setForm((f) => ({ ...f, slug: slugify(value) }));
   };
 
+  // Panel pobiera komplet (getAllPosts(true)), a tu rozdziela na dwie listy.
+  const drafts = posts.filter((p) => p.draft);
+  const published = posts.filter((p) => !p.draft);
+
   const loadPost = (post: BlogPost) => {
-    setForm({ title: post.title, slug: post.slug, excerpt: post.excerpt, content: post.content, date: post.date });
+    setForm({ title: post.title, slug: post.slug, excerpt: post.excerpt, content: post.content, date: post.date, draft: post.draft });
     setSlugTouched(true);
     setIsEditing(true);
     setAiResult("");
@@ -449,7 +511,7 @@ const Editor = ({ session }: { session: Session }) => {
     setInstruction("");
   };
 
-  const handlePublish = async () => {
+  const handlePublish = async (asDraft = false) => {
     if (!form.title.trim() || !form.slug.trim() || !form.content.trim()) {
       toast.error("Wypełnij tytuł, slug i treść.");
       return;
@@ -463,11 +525,16 @@ const Editor = ({ session }: { session: Session }) => {
           excerpt: form.excerpt.trim(),
           content: form.content,
           date: form.date || undefined,
+          draft: asDraft,
         },
       });
       if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
       if (data?.error) throw new Error(data.error);
-      toast.success("Wpis opublikowany! Deploy na Vercelu ruszy automatycznie (ok. 1 min) — odśwież stronę po chwili, żeby zobaczyć go na liście.");
+      toast.success(
+        asDraft
+          ? "Szkic zapisany. Deploy ruszy automatycznie (ok. 1 min) — po odświeżeniu znajdziesz go w oczekujących."
+          : "Wpis opublikowany! Deploy na Vercelu ruszy automatycznie (ok. 1 min) — odśwież stronę po chwili, żeby zobaczyć go na liście.",
+      );
       resetForm();
     } catch (e) {
       toast.error(`Błąd publikacji: ${e instanceof Error ? e.message : String(e)}`);
@@ -540,18 +607,58 @@ const Editor = ({ session }: { session: Session }) => {
           </div>
         )}
 
+        {drafts.length > 0 && (
+          <div className="mb-8 p-5 rounded-xl border border-sky-300 dark:border-sky-800 bg-sky-50 dark:bg-sky-950/30">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-semibold">📝 Oczekujące szkice ({drafts.length})</h2>
+              <span className="text-xs text-sky-700 dark:text-sky-400">
+                Nie widać ich na blogu — dokończ i opublikuj.
+              </span>
+            </div>
+            <div className="space-y-2">
+              {drafts.map((post) => (
+                <div
+                  key={post.slug}
+                  className="flex items-center justify-between gap-3 p-3 rounded-lg border border-sky-200 dark:border-sky-900 bg-white dark:bg-gray-900"
+                >
+                  <div className="min-w-0">
+                    <div className="text-xs text-gray-400">{post.date}</div>
+                    <div className="font-medium truncate">{post.title}</div>
+                    {post.excerpt && (
+                      <div className="text-sm text-gray-500 dark:text-gray-400 truncate">{post.excerpt}</div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <Button size="sm" onClick={() => loadPost(post)}>
+                      Otwórz
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDelete(post.slug)}
+                      disabled={deletingSlug === post.slug}
+                    >
+                      {deletingSlug === post.slug ? "Usuwanie..." : "Usuń"}
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="mb-8 p-5 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="font-semibold">Istniejące wpisy ({posts.length})</h2>
+            <h2 className="font-semibold">Istniejące wpisy ({published.length})</h2>
             <span className="text-xs text-gray-400">
               Lista odzwierciedla ostatni zbudowany deploy — po publikacji/usunięciu odśwież stronę po ok. 1 min.
             </span>
           </div>
-          {posts.length === 0 ? (
+          {published.length === 0 ? (
             <p className="text-sm text-gray-500 dark:text-gray-400">Brak wpisów.</p>
           ) : (
             <div className="space-y-2">
-              {posts.map((post) => (
+              {published.map((post) => (
                 <div
                   key={post.slug}
                   className="flex items-center justify-between gap-3 p-3 rounded-lg border border-gray-100 dark:border-gray-800"
@@ -683,9 +790,27 @@ const Editor = ({ session }: { session: Session }) => {
               )}
             </div>
 
-            <Button onClick={handlePublish} disabled={isSaving} className="w-full">
-              {isSaving ? "Publikowanie..." : isEditing ? "Zapisz zmiany" : "Opublikuj"}
-            </Button>
+            {/* Przy szkicu publikacja to po prostu zapis bez flagi draft -
+                dlatego edycja szkicu pokazuje oba przyciski. */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={() => handlePublish(false)} disabled={isSaving} className="flex-1">
+                {isSaving
+                  ? "Zapisywanie..."
+                  : form.draft
+                    ? "Opublikuj szkic"
+                    : isEditing
+                      ? "Zapisz zmiany"
+                      : "Opublikuj"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handlePublish(true)}
+                disabled={isSaving}
+                className="sm:w-48"
+              >
+                Zapisz jako szkic
+              </Button>
+            </div>
           </div>
 
           <div>

@@ -109,7 +109,7 @@ serve(async (req) => {
       });
     }
 
-    const { title, excerpt, content, date: providedDate } = body;
+    const { title, excerpt, content, date: providedDate, draft } = body;
     if (!title || !content) {
       return new Response(JSON.stringify({ error: "title i content sa wymagane" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -118,7 +118,10 @@ serve(async (req) => {
     }
 
     const date = providedDate || new Date().toISOString().split("T")[0];
-    const fileContent = `---\ntitle: ${title}\ndate: ${date}\nexcerpt: ${excerpt || ""}\n---\n\n${content}\n`;
+    // Linia "draft" pojawia sie tylko dla szkicu - opublikowany wpis ma
+    // frontmatter taki jak dotad, zeby nie ruszac istniejacych plikow.
+    const draftLine = draft === true ? "draft: true\n" : "";
+    const fileContent = `---\ntitle: ${title}\ndate: ${date}\nexcerpt: ${excerpt || ""}\n${draftLine}---\n\n${content}\n`;
 
     const putResponse = await fetch(`https://api.github.com/repos/${REPO}/contents/${path}`, {
       method: "PUT",
