@@ -11,12 +11,6 @@ export interface SandboxApp {
 
 export const sandboxApps: SandboxApp[] = [
   {
-    key: "lyrics-finder",
-    title: "Wyszukiwarka Tekstów Piosenek",
-    description: "Sprawdź tekst piosenki w klimacie retro Winamp (lyrics.ovh, darmowe API).",
-    path: "/lyrics-finder",
-  },
-  {
     key: "cv-generator",
     title: "Generator CV",
     description: "Prosty i schludny kreator CV z podglądem na żywo, zapisem w przeglądarce i eksportem do PDF.",

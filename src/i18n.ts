@@ -29,6 +29,7 @@ const resources = {
         aiCourse: { title: "Krótki Kurs AI", description: "Interaktywny przewodnik po podstawach sztucznej inteligencji." },
         weather: { title: "Inteligentna Pogoda", description: "Prognoza, jakość powietrza i analiza pogodowa dla miejscowości." },
         store: { title: "Przykładowy Sklep WWW", description: "Demo sklepu w stylu terminala — portfolio projekt e-commerce." },
+        lyricsFinder: { title: "Wyszukiwarka Tekstów Piosenek", description: "Sprawdź tekst piosenki w klimacie retro Winamp (lyrics.ovh, darmowe API)." },
       },
       footer: {
         createdBy: "Stworzył Paweł Malec ®",
@@ -75,6 +76,7 @@ const resources = {
         aiCourse: { title: "Short AI Course", description: "An interactive guide to the basics of artificial intelligence." },
         weather: { title: "Smart Weather", description: "Forecast, air quality and weather analysis for any location." },
         store: { title: "Sample Web Store", description: "Terminal-styled store demo — an e-commerce portfolio project." },
+        lyricsFinder: { title: "Lyrics Search", description: "Check out the lyrics in a retro Winamp style (lyrics.ovh, free API)" },
       },
       footer: {
         createdBy: "Built by Paweł Malec ®",
