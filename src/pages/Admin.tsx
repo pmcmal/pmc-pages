@@ -65,6 +65,59 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
   const [titleEn, setTitleEn] = useState("");
   const [descriptionEn, setDescriptionEn] = useState("");
   const [isPromoting, setIsPromoting] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
+
+  // Tytul i opis po angielsku sa tlumaczone automatycznie po otwarciu
+  // formularza. Jedno wywolanie zalatwia oba pola - darmowy limit OpenRoutera
+  // to 50 zapytan na dobe, wiec nie ma po co robic dwoch.
+  const translateToEnglish = async () => {
+    if (!titlePl.trim() || !descriptionPl.trim()) return;
+    setIsTranslating(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("blog-ai-assist", {
+        body: {
+          instruction:
+            "Przetłumacz poniższy tytuł i opis na naturalny angielski. Zwróć DOKŁADNIE dwie linie: w pierwszej sam tytuł, w drugiej sam opis. Bez etykiet, bez cudzysłowów, bez formatowania.",
+          title: titlePl.trim(),
+          content: `Tytuł: ${titlePl.trim()}\nOpis: ${descriptionPl.trim()}`,
+        },
+      });
+      if (error) throw new Error(await getEdgeFunctionErrorMessage(error, "Nieznany błąd."));
+      if (data?.error) throw new Error(data.error);
+
+      // Model bywa gadatliwy mimo instrukcji, wiec zdejmujemy ewentualne
+      // etykiety, cudzyslowy i znaczniki listy, a bierzemy dwie pierwsze
+      // niepuste linie.
+      const lines = String(data?.result ?? "")
+        .split(/\r?\n/)
+        .map((line) =>
+          line
+            .replace(/^\s*(?:[-*>]|\d+[.)])\s*/, "")
+            .replace(/^\s*(?:title|tytuł|tytul|description|opis)\s*:\s*/i, "")
+            .replace(/^["'`*_]+|["'`*_]+$/g, "")
+            .trim(),
+        )
+        .filter(Boolean);
+
+      if (lines[0]) setTitleEn(lines[0]);
+      if (lines[1]) setDescriptionEn(lines[1]);
+      if (!lines[0] || !lines[1]) {
+        toast.info("AI nie zwróciło kompletu — uzupełnij angielskie pola ręcznie.");
+      }
+    } catch (e) {
+      toast.info(`Nie udało się przetłumaczyć automatycznie: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setIsTranslating(false);
+    }
+  };
+
+  // Tylko gdy pola sa jeszcze puste - recznych poprawek nie nadpisujemy.
+  useEffect(() => {
+    if (open && !titleEn && !descriptionEn && !isTranslating) {
+      void translateToEnglish();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handlePromote = async () => {
     if (!icon || !color || !titlePl.trim() || !descriptionPl.trim() || !titleEn.trim() || !descriptionEn.trim()) {
@@ -186,8 +239,22 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
               <Input value={titlePl} onChange={(e) => setTitlePl(e.target.value)} />
             </div>
             <div>
-              <Label>Tytuł (EN)</Label>
-              <Input value={titleEn} onChange={(e) => setTitleEn(e.target.value)} placeholder="np. CV Generator" />
+              <div className="flex items-center justify-between gap-2">
+                <Label>Tytuł (EN)</Label>
+                <button
+                  type="button"
+                  onClick={() => void translateToEnglish()}
+                  disabled={isTranslating}
+                  className="text-xs text-blue-600 dark:text-blue-400 hover:underline disabled:opacity-50"
+                >
+                  {isTranslating ? "Tłumaczę..." : "Przetłumacz ponownie"}
+                </button>
+              </div>
+              <Input
+                value={titleEn}
+                onChange={(e) => setTitleEn(e.target.value)}
+                placeholder={isTranslating ? "Tłumaczenie..." : "np. CV Generator"}
+              />
             </div>
             <div>
               <Label>Opis (PL)</Label>
@@ -198,7 +265,7 @@ const PromoteSandboxApp = ({ app, onPromoted }: { app: SandboxApp; onPromoted: (
               <Input
                 value={descriptionEn}
                 onChange={(e) => setDescriptionEn(e.target.value)}
-                placeholder="np. A simple CV builder with a live preview."
+                placeholder={isTranslating ? "Tłumaczenie..." : "np. A simple CV builder with a live preview."}
               />
             </div>
           </div>
