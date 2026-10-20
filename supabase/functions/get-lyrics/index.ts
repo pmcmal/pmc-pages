@@ -12,6 +12,34 @@ function corsHeadersFor(req: Request) {
   };
 }
 
+// lyrics.ovh nie radzi sobie z polskimi znakami: "Dawid Podsiadło" / "Trójkąty
+// i kwadraty" zwraca 404, a dokladnie ten sam utwor zapisany bez ogonkow oddaje
+// pelny tekst. To samo dotyczy Maanamu, Myslovitz czy Lady Pank - czyli
+// praktycznie calego polskiego repertuaru. Dlatego po nieudanym zapytaniu
+// probujemy jeszcze raz z transliteracja.
+//
+// NFD rozklada wiekszosc liter na znak bazowy plus znak diakrytyczny, ktory
+// potem usuwamy - ale "ł" i "Ł" sie nie rozkladaja, wiec trzeba je podmienic
+// recznie.
+function stripDiacritics(text: string): string {
+  return text
+    .replace(/ł/g, "l")
+    .replace(/Ł/g, "L")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+}
+
+async function fetchLyrics(artist: string, title: string): Promise<string | null> {
+  const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
+  const response = await fetch(url);
+
+  if (response.status === 404) return null;
+  if (!response.ok) throw new Error(`lyrics.ovh returned ${response.status}`);
+
+  const data = await response.json();
+  return typeof data?.lyrics === "string" && data.lyrics.trim() ? data.lyrics : null;
+}
+
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
@@ -34,28 +62,26 @@ serve(async (req) => {
       });
     }
 
-    const url = `https://api.lyrics.ovh/v1/${encodeURIComponent(artist)}/${encodeURIComponent(title)}`;
-    const lyricsResponse = await fetch(url);
+    let lyrics = await fetchLyrics(artist, title);
 
-    if (lyricsResponse.status === 404) {
+    // Druga proba bez polskich znakow - dla rodzimego repertuaru to zwykle ona
+    // zwraca wynik.
+    if (!lyrics) {
+      const asciiArtist = stripDiacritics(artist);
+      const asciiTitle = stripDiacritics(title);
+      if (asciiArtist !== artist || asciiTitle !== title) {
+        lyrics = await fetchLyrics(asciiArtist, asciiTitle);
+      }
+    }
+
+    if (!lyrics) {
       return new Response(JSON.stringify({ error: "Nie znaleziono tekstu dla tego utworu." }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 404,
       });
     }
-    if (!lyricsResponse.ok) {
-      throw new Error(`lyrics.ovh returned ${lyricsResponse.status}`);
-    }
 
-    const data = await lyricsResponse.json();
-    if (!data.lyrics) {
-      return new Response(JSON.stringify({ error: "Nie znaleziono tekstu dla tego utworu." }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 404,
-      });
-    }
-
-    return new Response(JSON.stringify({ lyrics: data.lyrics }), {
+    return new Response(JSON.stringify({ lyrics }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     });
