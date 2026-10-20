@@ -21,8 +21,6 @@ import {
   GraduationCap,
   Sparkles,
   RotateCcw,
-  Sun,
-  Moon,
 } from "lucide-react";
 
 interface ExperienceItem {
@@ -52,8 +50,10 @@ interface CVData {
   experience: ExperienceItem[];
   education: EducationItem[];
   skills: string[];
-  templateMode: "light" | "dark";
+  templateMode: ThemeKey;
 }
+
+type ThemeKey = "light" | "dark" | "navy" | "emerald" | "burgundy" | "graphite";
 
 const STORAGE_KEY = "pmc-cv-generator-data";
 
@@ -72,43 +72,149 @@ const emptyData: CVData = {
   templateMode: "light",
 };
 
-const lightTheme = {
-  page: "bg-white text-slate-900",
-  sidebar: "bg-slate-50 text-slate-700 border-slate-200",
-  photoRing: "ring-white",
-  photoPlaceholder: "bg-slate-200 text-slate-400",
-  iconAccent: "text-blue-500",
-  contactText: "text-slate-700",
-  skillTag: "bg-white text-slate-700 border border-slate-200 shadow-sm",
-  sidebarHeading: "text-slate-400",
-  name: "text-slate-900",
-  jobTitle: "text-blue-600",
-  summary: "text-slate-700",
-  sectionHeading: "text-slate-400 border-slate-200",
-  itemTitle: "text-slate-900",
-  itemPeriod: "text-slate-500",
-  itemDesc: "text-slate-600",
-  placeholder: "text-gray-300",
+interface CVTheme {
+  page: string;
+  sidebar: string;
+  photoRing: string;
+  photoPlaceholder: string;
+  iconAccent: string;
+  contactText: string;
+  skillTag: string;
+  sidebarHeading: string;
+  name: string;
+  jobTitle: string;
+  summary: string;
+  sectionHeading: string;
+  itemTitle: string;
+  itemPeriod: string;
+  itemDesc: string;
+  placeholder: string;
+}
+
+// Klasy musza byc zapisane w calosci, a nie sklejane z kawalkow - inaczej
+// Tailwind ich nie wygeneruje, bo skanuje zrodlo tekstowo.
+const themes: Record<ThemeKey, CVTheme> = {
+  light: {
+    page: "bg-white text-slate-900",
+    sidebar: "bg-slate-50 text-slate-700 border-slate-200",
+    photoRing: "ring-white",
+    photoPlaceholder: "bg-slate-200 text-slate-400",
+    iconAccent: "text-blue-500",
+    contactText: "text-slate-700",
+    skillTag: "bg-white text-slate-700 border border-slate-200 shadow-sm",
+    sidebarHeading: "text-slate-400",
+    name: "text-slate-900",
+    jobTitle: "text-blue-600",
+    summary: "text-slate-700",
+    sectionHeading: "text-slate-400 border-slate-200",
+    itemTitle: "text-slate-900",
+    itemPeriod: "text-slate-500",
+    itemDesc: "text-slate-600",
+    placeholder: "text-gray-300",
+  },
+  dark: {
+    page: "bg-slate-900 text-slate-100",
+    sidebar: "bg-slate-950 text-slate-200 border-slate-800",
+    photoRing: "ring-slate-700",
+    photoPlaceholder: "bg-slate-800 text-slate-500",
+    iconAccent: "text-blue-400",
+    contactText: "text-slate-300",
+    skillTag: "bg-slate-800 text-slate-200 border border-slate-700",
+    sidebarHeading: "text-slate-500",
+    name: "text-white",
+    jobTitle: "text-blue-400",
+    summary: "text-slate-300",
+    sectionHeading: "text-slate-500 border-slate-700",
+    itemTitle: "text-slate-100",
+    itemPeriod: "text-slate-400",
+    itemDesc: "text-slate-400",
+    placeholder: "text-slate-600",
+  },
+  // Ponizsze trzymaja biala strone i kolorowy tylko pasek boczny - uklad
+  // najczestszy w szablonach CV i najbezpieczniejszy na wydruku.
+  navy: {
+    page: "bg-white text-slate-900",
+    sidebar: "bg-blue-950 text-blue-100 border-blue-950",
+    photoRing: "ring-blue-800",
+    photoPlaceholder: "bg-blue-900 text-blue-400",
+    iconAccent: "text-blue-300",
+    contactText: "text-blue-100",
+    skillTag: "bg-white/10 text-white border border-white/20",
+    sidebarHeading: "text-blue-300",
+    name: "text-slate-900",
+    jobTitle: "text-blue-800",
+    summary: "text-slate-700",
+    sectionHeading: "text-slate-400 border-slate-200",
+    itemTitle: "text-slate-900",
+    itemPeriod: "text-slate-500",
+    itemDesc: "text-slate-600",
+    placeholder: "text-gray-300",
+  },
+  emerald: {
+    page: "bg-white text-slate-900",
+    sidebar: "bg-emerald-900 text-emerald-50 border-emerald-900",
+    photoRing: "ring-emerald-700",
+    photoPlaceholder: "bg-emerald-800 text-emerald-400",
+    iconAccent: "text-emerald-300",
+    contactText: "text-emerald-50",
+    skillTag: "bg-white/10 text-white border border-white/20",
+    sidebarHeading: "text-emerald-300",
+    name: "text-slate-900",
+    jobTitle: "text-emerald-800",
+    summary: "text-slate-700",
+    sectionHeading: "text-slate-400 border-slate-200",
+    itemTitle: "text-slate-900",
+    itemPeriod: "text-slate-500",
+    itemDesc: "text-slate-600",
+    placeholder: "text-gray-300",
+  },
+  burgundy: {
+    page: "bg-white text-slate-900",
+    sidebar: "bg-rose-950 text-rose-100 border-rose-950",
+    photoRing: "ring-rose-800",
+    photoPlaceholder: "bg-rose-900 text-rose-400",
+    iconAccent: "text-rose-300",
+    contactText: "text-rose-100",
+    skillTag: "bg-white/10 text-white border border-white/20",
+    sidebarHeading: "text-rose-300",
+    name: "text-slate-900",
+    jobTitle: "text-rose-800",
+    summary: "text-slate-700",
+    sectionHeading: "text-slate-400 border-slate-200",
+    itemTitle: "text-slate-900",
+    itemPeriod: "text-slate-500",
+    itemDesc: "text-slate-600",
+    placeholder: "text-gray-300",
+  },
+  graphite: {
+    page: "bg-white text-slate-900",
+    sidebar: "bg-zinc-800 text-zinc-100 border-zinc-800",
+    photoRing: "ring-zinc-600",
+    photoPlaceholder: "bg-zinc-700 text-zinc-400",
+    iconAccent: "text-amber-300",
+    contactText: "text-zinc-100",
+    skillTag: "bg-white/10 text-white border border-white/20",
+    sidebarHeading: "text-zinc-400",
+    name: "text-slate-900",
+    jobTitle: "text-zinc-700",
+    summary: "text-slate-700",
+    sectionHeading: "text-slate-400 border-slate-200",
+    itemTitle: "text-slate-900",
+    itemPeriod: "text-slate-500",
+    itemDesc: "text-slate-600",
+    placeholder: "text-gray-300",
+  },
 };
 
-const darkTheme = {
-  page: "bg-slate-900 text-slate-100",
-  sidebar: "bg-slate-950 text-slate-200 border-slate-800",
-  photoRing: "ring-slate-700",
-  photoPlaceholder: "bg-slate-800 text-slate-500",
-  iconAccent: "text-blue-400",
-  contactText: "text-slate-300",
-  skillTag: "bg-slate-800 text-slate-200 border border-slate-700",
-  sidebarHeading: "text-slate-500",
-  name: "text-white",
-  jobTitle: "text-blue-400",
-  summary: "text-slate-300",
-  sectionHeading: "text-slate-500 border-slate-700",
-  itemTitle: "text-slate-100",
-  itemPeriod: "text-slate-400",
-  itemDesc: "text-slate-400",
-  placeholder: "text-slate-600",
-};
+// swatch to kolor kropki w wyborze motywu - pokazuje kolor paska bocznego
+const themeOptions: { key: ThemeKey; label: string; swatch: string }[] = [
+  { key: "light", label: "Jasny", swatch: "bg-slate-200" },
+  { key: "dark", label: "Ciemny", swatch: "bg-slate-900" },
+  { key: "navy", label: "Granatowy", swatch: "bg-blue-950" },
+  { key: "emerald", label: "Zielony", swatch: "bg-emerald-900" },
+  { key: "burgundy", label: "Bordowy", swatch: "bg-rose-950" },
+  { key: "graphite", label: "Grafitowy", swatch: "bg-zinc-800" },
+];
 
 const CVGenerator = () => {
   const [data, setData] = useState<CVData>(emptyData);
@@ -135,7 +241,8 @@ const CVGenerator = () => {
     setData((prev) => ({ ...prev, [key]: value }));
   };
 
-  const theme = data.templateMode === "dark" ? darkTheme : lightTheme;
+  // zapis z localStorage moze pochodzic sprzed dolozenia motywow
+  const theme = themes[data.templateMode] ?? themes.light;
 
   const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -201,7 +308,20 @@ const CVGenerator = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-4">
-      <style>{`@media print { @page { size: A4; margin: 12mm; } }`}</style>
+      <style>{`
+        @media print {
+          @page { size: A4; margin: 12mm; }
+
+          /* Przegladarki domyslnie pomijaja tla i kolory przy drukowaniu, zeby
+             oszczedzac tusz. Przez to ciemny motyw wygladal czarno na ekranie,
+             a z "Drukuj / PDF" wychodzil bialy. To wymusza wydruk zgodny
+             z podgladem. */
+          #cv-preview, #cv-preview * {
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+          }
+        }
+      `}</style>
       <SiteHomeButton />
       <SiteControls />
 
@@ -468,27 +588,22 @@ const CVGenerator = () => {
 
           {/* Podglad / Wydruk */}
           <div className="print:w-full">
-            <div className="flex justify-center gap-2 mb-3 print:hidden">
-              <button
-                onClick={() => update("templateMode", "light")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  data.templateMode === "light"
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                <Sun className="w-3.5 h-3.5" /> Jasny
-              </button>
-              <button
-                onClick={() => update("templateMode", "dark")}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  data.templateMode === "dark"
-                    ? "bg-slate-900 text-white border-slate-900"
-                    : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                <Moon className="w-3.5 h-3.5" /> Ciemny
-              </button>
+            <div className="flex flex-wrap justify-center gap-2 mb-3 print:hidden">
+              {themeOptions.map((option) => (
+                <button
+                  key={option.key}
+                  onClick={() => update("templateMode", option.key)}
+                  aria-pressed={data.templateMode === option.key}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                    data.templateMode === option.key
+                      ? "bg-slate-900 text-white border-slate-900"
+                      : "bg-white text-slate-600 border-slate-300 hover:bg-slate-50"
+                  }`}
+                >
+                  <span className={`w-3 h-3 rounded-full ring-1 ring-black/10 ${option.swatch}`} />
+                  {option.label}
+                </button>
+              ))}
             </div>
 
             <div
