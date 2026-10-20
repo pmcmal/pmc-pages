@@ -668,6 +668,16 @@ const CVGenerator = () => {
               </CardContent>
             </Card>
 
+            {/* Przegladarka rysuje date, adres i numer strony w marginesie
+                kartki. Samo @page margin: 0 nie wystarcza, bo ustawienie
+                marginesow w oknie drukowania ma pierwszenstwo - stad ta
+                podpowiedz zamiast cichej nadziei, ze zadziala. */}
+            <div className="mb-3 p-3 rounded-lg border border-blue-200 bg-blue-50 text-sm text-blue-900 dark:border-blue-900 dark:bg-blue-950 dark:text-blue-200">
+              <span className="font-semibold">Wskazówka:</span> w oknie drukowania ustaw{" "}
+              <span className="font-semibold">Marginesy → Brak</span>. Inaczej przeglądarka dołoży u góry i na dole
+              datę, adres strony i numer strony.
+            </div>
+
             <div className="flex gap-3">
               <Button onClick={() => window.print()} className="flex-1">
                 <Printer className="w-4 h-4 mr-2" /> Drukuj / Zapisz jako PDF
