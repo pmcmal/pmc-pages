@@ -22,6 +22,7 @@ const Admin = lazy(() => import("./pages/Admin"));
 const LyricsFinder = lazy(() => import("./pages/LyricsFinder"));
 const CVGenerator = lazy(() => import("./pages/CVGenerator"));
 const TunnelGame = lazy(() => import("./pages/TunnelGame"));
+const OrbitGame = lazy(() => import("./pages/OrbitGame"));
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
               <Route path="/lyrics-finder" element={<LyricsFinder />} />
               <Route path="/cv-generator" element={<CVGenerator />} />
               <Route path="/tunel" element={<TunnelGame />} />
+              <Route path="/orbita" element={<OrbitGame />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -10,4 +10,10 @@ export interface SandboxApp {
 }
 
 export const sandboxApps: SandboxApp[] = [
+  {
+    key: "orbita",
+    title: "Orbita",
+    description: "Lekka gra 2D: krazysz wokol planety, przytrzymanie wznosi wyzej. Jedno sterowanie na PC i telefonie.",
+    path: "/orbita",
+  },
 ];

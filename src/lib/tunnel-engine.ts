@@ -72,6 +72,7 @@ export class TunnelGame {
   private running = false;
   private raf = 0;
   private lastTime = 0;
+  private hudTimer = 0;
 
   /** Wejscie w zakresie -1..1, ustawiane przez klawiature albo dotyk. */
   public input = { x: 0, y: 0 };
@@ -313,12 +314,19 @@ export class TunnelGame {
     this.updateOrbs(dt);
     this.updateShip(dt);
 
-    this.onState({
-      running: this.running,
-      distance: this.distance,
-      orbs: this.orbCount,
-      speed: this.speed,
-    });
+    // HUD odswiezany 10 razy na sekunde, a nie co klatke. Wczesniej kazda
+    // klatka wywolywala setState Reacta, wiec cala strona przerysowywala sie
+    // 60 razy na sekunde - to bylo glowne obciazenie, nie samo 3D.
+    this.hudTimer += dt;
+    if (this.hudTimer >= 0.1) {
+      this.hudTimer = 0;
+      this.onState({
+        running: this.running,
+        distance: this.distance,
+        orbs: this.orbCount,
+        speed: this.speed,
+      });
+    }
   }
 
   private recycleRings() {
