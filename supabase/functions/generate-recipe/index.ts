@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { openRouterTextStream, streamHeaders, withStreaming } from "../_shared/stream.ts";
 import { splitSections, tryJson } from "../_shared/ai-text.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
@@ -21,7 +22,9 @@ serve(async (req) => {
   }
 
   try {
-    let { prompt } = await req.json();
+    const requestBody = await req.json();
+    const wantsStream = requestBody?.stream === true;
+    let { prompt } = requestBody;
 
     // Handle "Surprise me" logic: if prompt is generic, use a more open-ended prompt
     if (prompt === "losowe składniki") {
@@ -43,33 +46,44 @@ serve(async (req) => {
       throw new Error("OPENROUTER_API_KEY is not set in environment variables.");
     }
 
+    const requestPayload = {
+      model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
+      messages: [
+        {
+          role: "system",
+          content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania. Jeśli użytkownik poda konkretne składniki, wykorzystaj je. Jeśli poprosi o zaskoczenie lub poda ogólne zapytanie, wygeneruj ciekawy przepis z losowych składników. Odpowiadaj WYŁĄCZNIE zwykłym tekstem w dokładnie takiej strukturze:\n\n### PRZEPIS\n(pełny przepis: lista składników i instrukcje krok po kroku)\n\n### PRZELICZNIKI\n(prosta tabela przeliczników wagi na miary domowe - łyżeczki, szklanki - dla kilku podstawowych składników jak mąka, cukier, woda, olej)\n\nNie zwracaj JSON-a. Upewnij się, że przepis jest łatwy do wykonania.`,
+        },
+        {
+          role: "user",
+          content: `Wygeneruj przepis na podstawie dostępnych składników: ${prompt}`,
+        },
+      ],
+      max_tokens: 2048,
+      provider: { sort: "throughput" }, // preferuj najszybszego dostawce
+    };
+
     const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
-        messages: [
-          {
-            role: "system",
-            content: `Jesteś ekspertem kulinarnym i generujesz przepisy na szybkie i proste dania. Jeśli użytkownik poda konkretne składniki, wykorzystaj je. Jeśli poprosi o zaskoczenie lub poda ogólne zapytanie, wygeneruj ciekawy przepis z losowych składników. Odpowiadaj WYŁĄCZNIE zwykłym tekstem w dokładnie takiej strukturze:\n\n### PRZEPIS\n(pełny przepis: lista składników i instrukcje krok po kroku)\n\n### PRZELICZNIKI\n(prosta tabela przeliczników wagi na miary domowe - łyżeczki, szklanki - dla kilku podstawowych składników jak mąka, cukier, woda, olej)\n\nNie zwracaj JSON-a. Upewnij się, że przepis jest łatwy do wykonania.`,
-          },
-          {
-            role: "user",
-            content: `Wygeneruj przepis na podstawie dostępnych składników: ${prompt}`,
-          },
-        ],
-        max_tokens: 2048,
-        provider: { sort: "throughput" }, // preferuj najszybszego dostawce
-      }),
+      body: JSON.stringify(wantsStream ? withStreaming(requestPayload) : requestPayload),
     });
 
     if (!openrouterResponse.ok) {
       const errorData = await openrouterResponse.json();
       console.error("OpenRouter API error:", errorData);
       throw new Error(`OpenRouter API returned an error: ${openrouterResponse.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    // W trybie strumieniowym oddajemy tekst na biezaco - parsowanie na pola
+    // robi juz frontend, kiedy strumien sie zamknie.
+    if (wantsStream) {
+      return new Response(openRouterTextStream(openrouterResponse), {
+        headers: streamHeaders(corsHeaders),
+        status: 200,
+      });
     }
 
     const data = await openrouterResponse.json();

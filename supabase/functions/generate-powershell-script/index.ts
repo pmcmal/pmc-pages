@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { openRouterTextStream, streamHeaders, withStreaming } from "../_shared/stream.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const MAX_PROMPT_LENGTH = 1000;
@@ -59,7 +60,9 @@ serve(async (req) => {
   }
 
   try {
-    let { prompt } = await req.json();
+    const requestBody = await req.json();
+    const wantsStream = requestBody?.stream === true;
+    let { prompt } = requestBody;
 
     // Handle "Surprise me" logic: if prompt is generic, use a more open-ended prompt
     if (prompt === "losowy skrypt PowerShell") {
@@ -82,33 +85,44 @@ serve(async (req) => {
     }
 
     // Using OpenRouter API endpoint, compatible with OpenAI API
+    const requestPayload = {
+      model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
+      messages: [
+        {
+          role: "system",
+          content: "Jesteś ekspertem od skryptów PowerShell. Odpowiadaj WYŁĄCZNIE czystym tekstem w tym formacie: najpierw pojedynczy blok kodu ```powershell zawierający gotowy skrypt, a następnie — tylko jeśli masz ostrzeżenia lub objaśnienia — linia ---UWAGI--- i pod nią zwięzły opis. Nie zwracaj JSON-a. Nie pisz nic przed blokiem kodu. Skrypt ma być bezpieczny i zgodny z dobrymi praktykami. Jeśli zapytanie jest niejasne lub potencjalnie niebezpieczne, nie generuj skryptu — umieść wyjaśnienie w sekcji ---UWAGI---.",
+        },
+        {
+          role: "user",
+          content: `Wygeneruj skrypt PowerShell dla: ${prompt}`,
+        },
+      ],
+      max_tokens: 2048,
+      provider: { sort: "throughput" }, // preferuj najszybszego dostawce
+    };
+
     const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
-        messages: [
-          {
-            role: "system",
-            content: "Jesteś ekspertem od skryptów PowerShell. Odpowiadaj WYŁĄCZNIE czystym tekstem w tym formacie: najpierw pojedynczy blok kodu ```powershell zawierający gotowy skrypt, a następnie — tylko jeśli masz ostrzeżenia lub objaśnienia — linia ---UWAGI--- i pod nią zwięzły opis. Nie zwracaj JSON-a. Nie pisz nic przed blokiem kodu. Skrypt ma być bezpieczny i zgodny z dobrymi praktykami. Jeśli zapytanie jest niejasne lub potencjalnie niebezpieczne, nie generuj skryptu — umieść wyjaśnienie w sekcji ---UWAGI---.",
-          },
-          {
-            role: "user",
-            content: `Wygeneruj skrypt PowerShell dla: ${prompt}`,
-          },
-        ],
-        max_tokens: 2048,
-        provider: { sort: "throughput" }, // preferuj najszybszego dostawce
-      }),
+      body: JSON.stringify(wantsStream ? withStreaming(requestPayload) : requestPayload),
     });
 
     if (!openrouterResponse.ok) {
       const errorData = await openrouterResponse.json();
       console.error("OpenRouter API error:", errorData);
       throw new Error(`OpenRouter API returned an error: ${openrouterResponse.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    // W trybie strumieniowym oddajemy tekst na biezaco - parsowanie na pola
+    // robi juz frontend, kiedy strumien sie zamknie.
+    if (wantsStream) {
+      return new Response(openRouterTextStream(openrouterResponse), {
+        headers: streamHeaders(corsHeaders),
+        status: 200,
+      });
     }
 
     const data = await openrouterResponse.json();

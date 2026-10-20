@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { openRouterTextStream, streamHeaders, withStreaming } from "../_shared/stream.ts";
 import { extractCodeFence, splitSections, toList, tryJson } from "../_shared/ai-text.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
@@ -24,7 +25,9 @@ serve(async (req) => {
   }
 
   try {
-    let { prompt } = await req.json();
+    const requestBody = await req.json();
+    const wantsStream = requestBody?.stream === true;
+    let { prompt } = requestBody;
 
     if (prompt === "losowy pomysł na projekt elektroniczny na Raspberry Pi, Arduino lub prosty układ do lutowania") {
       prompt = "losowy, ciekawy i prosty do wykonania pomysł na projekt elektroniczny na Raspberry Pi, Arduino lub inny prosty układ do lutowania, np. dla początkujących";
@@ -45,33 +48,44 @@ serve(async (req) => {
       throw new Error("OPENROUTER_API_KEY is not set in environment variables.");
     }
 
+    const requestPayload = {
+      model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
+      messages: [
+        {
+          role: "system",
+          content: `Jesteś ekspertem od elektroniki i generujesz pomysły na projekty elektroniczne - kreatywne, ale realistyczne i możliwe do wykonania na Raspberry Pi, Arduino lub prostych układach do lutowania. Odpowiadaj WYŁĄCZNIE zwykłym tekstem w dokładnie takiej strukturze:\n\n### OPIS\n(krótki opis projektu i ogólny zarys działania)\n\n### KOMPONENTY\n(lista potrzebnych części, każda w osobnej linii zaczynającej się od myślnika, np. - Arduino Uno)\n\n### KOD\n(jeśli projekt wymaga programowania, przykładowy krótki kod w bloku kodu markdown; jeśli kod nie jest potrzebny, napisz: brak)\n\nNie zwracaj JSON-a.`,
+        },
+        {
+          role: "user",
+          content: `Wygeneruj pomysł na projekt elektroniczny dla: ${prompt}`,
+        },
+      ],
+      max_tokens: 1500, // Zwiększono limit tokenów, aby pomieścić kod i komponenty
+      provider: { sort: "throughput" }, // preferuj najszybszego dostawce
+    };
+
     const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
-        messages: [
-          {
-            role: "system",
-            content: `Jesteś ekspertem od elektroniki i generujesz pomysły na projekty elektroniczne - kreatywne, ale realistyczne i możliwe do wykonania na Raspberry Pi, Arduino lub prostych układach do lutowania. Odpowiadaj WYŁĄCZNIE zwykłym tekstem w dokładnie takiej strukturze:\n\n### OPIS\n(krótki opis projektu i ogólny zarys działania)\n\n### KOMPONENTY\n(lista potrzebnych części, każda w osobnej linii zaczynającej się od myślnika, np. - Arduino Uno)\n\n### KOD\n(jeśli projekt wymaga programowania, przykładowy krótki kod w bloku kodu markdown; jeśli kod nie jest potrzebny, napisz: brak)\n\nNie zwracaj JSON-a.`,
-          },
-          {
-            role: "user",
-            content: `Wygeneruj pomysł na projekt elektroniczny dla: ${prompt}`,
-          },
-        ],
-        max_tokens: 1500, // Zwiększono limit tokenów, aby pomieścić kod i komponenty
-        provider: { sort: "throughput" }, // preferuj najszybszego dostawce
-      }),
+      body: JSON.stringify(wantsStream ? withStreaming(requestPayload) : requestPayload),
     });
 
     if (!openrouterResponse.ok) {
       const errorData = await openrouterResponse.json();
       console.error("OpenRouter API error:", errorData);
       throw new Error(`OpenRouter API returned an error: ${openrouterResponse.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    // W trybie strumieniowym oddajemy tekst na biezaco - parsowanie na pola
+    // robi juz frontend, kiedy strumien sie zamknie.
+    if (wantsStream) {
+      return new Response(openRouterTextStream(openrouterResponse), {
+        headers: streamHeaders(corsHeaders),
+        status: 200,
+      });
     }
 
     const data = await openrouterResponse.json();

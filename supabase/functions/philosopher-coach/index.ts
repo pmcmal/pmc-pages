@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { openRouterTextStream, streamHeaders, withStreaming } from "../_shared/stream.ts";
 import { tryJson } from "../_shared/ai-text.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
@@ -24,7 +25,9 @@ serve(async (req) => {
   }
 
   try {
-    let { problem } = await req.json();
+    const requestBody = await req.json();
+    const wantsStream = requestBody?.stream === true;
+    let { problem } = requestBody;
 
     // Handle "Surprise me" logic: if problem is generic, use a more open-ended prompt
     if (problem === "losowy problem życiowy") {
@@ -46,33 +49,44 @@ serve(async (req) => {
       throw new Error("OPENROUTER_API_KEY is not set in environment variables.");
     }
 
+    const requestPayload = {
+      model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
+      messages: [
+        {
+          role: "system",
+          content: `Jesteś profesjonalnym filozofem i coachem życiowym. Twoim zadaniem jest udzielanie głębokich, przemyślanych i inspirujących porad życiowych na podstawie problemów przedstawionych przez użytkownika. Skup się na perspektywie filozoficznej, zachęcaj do refleksji i oferuj konstruktywne podejście. Zwróć WYŁĄCZNIE samą poradę, zwykłym tekstem. Nie zwracaj JSON-a ani bloków kodu.`,
+        },
+        {
+          role: "user",
+          content: `Mój problem: ${problem}`,
+        },
+      ],
+      max_tokens: 1024,
+      provider: { sort: "throughput" }, // preferuj najszybszego dostawce
+    };
+
     const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${openrouterApiKey}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "openrouter/free", // Darmowy router OpenRouter — sam wybiera dostępny darmowy model
-        messages: [
-          {
-            role: "system",
-            content: `Jesteś profesjonalnym filozofem i coachem życiowym. Twoim zadaniem jest udzielanie głębokich, przemyślanych i inspirujących porad życiowych na podstawie problemów przedstawionych przez użytkownika. Skup się na perspektywie filozoficznej, zachęcaj do refleksji i oferuj konstruktywne podejście. Zwróć WYŁĄCZNIE samą poradę, zwykłym tekstem. Nie zwracaj JSON-a ani bloków kodu.`,
-          },
-          {
-            role: "user",
-            content: `Mój problem: ${problem}`,
-          },
-        ],
-        max_tokens: 1024,
-        provider: { sort: "throughput" }, // preferuj najszybszego dostawce
-      }),
+      body: JSON.stringify(wantsStream ? withStreaming(requestPayload) : requestPayload),
     });
 
     if (!openrouterResponse.ok) {
       const errorData = await openrouterResponse.json();
       console.error("OpenRouter API error:", errorData);
       throw new Error(`OpenRouter API returned an error: ${openrouterResponse.status} - ${JSON.stringify(errorData)}`);
+    }
+
+    // W trybie strumieniowym oddajemy tekst na biezaco - parsowanie na pola
+    // robi juz frontend, kiedy strumien sie zamknie.
+    if (wantsStream) {
+      return new Response(openRouterTextStream(openrouterResponse), {
+        headers: streamHeaders(corsHeaders),
+        status: 200,
+      });
     }
 
     const data = await openrouterResponse.json();
