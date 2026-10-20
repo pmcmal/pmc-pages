@@ -10,4 +10,10 @@ export interface SandboxApp {
 }
 
 export const sandboxApps: SandboxApp[] = [
+  {
+    key: "sprawa-magazynu",
+    title: "Sprawa magazynu nr 3",
+    description: "Kryminal w realiach PRL: przesluchania, tablica sledztwa i krotkie przejscia korytarzem.",
+    path: "/sprawa-magazynu",
+  },
 ];
