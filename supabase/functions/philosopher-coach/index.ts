@@ -78,7 +78,14 @@ serve(async (req) => {
     }
 
     const data = await openrouterResponse.json();
-    const aiResponseContent = data.choices[0].message.content;
+    // Darmowy router potrafi oddac 200 z pustym choices (brak wolnego dostawcy,
+    // limit, filtr tresci) - bez tej kontroli leci TypeError i uzytkownik widzi
+    // generyczny blad 500 zamiast informacji, ze warto sprobowac ponownie.
+    const aiResponseContent = data.choices?.[0]?.message?.content;
+    if (!aiResponseContent) {
+      console.error("Pusta odpowiedz OpenRouter:", JSON.stringify(data));
+      throw new Error("Model AI nie zwrocil tresci - darmowy router byl chwilowo przeciazony. Sprobuj ponownie za chwile.");
+    }
 
     let parsedResponse;
     const jsonCandidate = extractJson(aiResponseContent);

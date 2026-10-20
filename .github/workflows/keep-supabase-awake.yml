@@ -9,6 +9,13 @@ name: Keep Supabase Awake
 # problem z kluczem ani z uspionym projektem, tylko z metoda pingowania. Wywolanie
 # istniejacej edge function dziala niezawodnie i jest bardziej wiarygodnym sygnalem
 # aktywnosci niz gole zapytanie do schema introspection.
+#
+# UWAGA 2: GitHub sam wylacza zaplanowane workflow po 60 dniach bez commita
+# w repo (stan DISABLED_INACTIVITY) - wlasnie to sie stalo: ostatni ping
+# 2026-09-25, bo ostatni commit byl 2026-07-25. Trzeba wtedy recznie kliknac
+# "Enable workflow" w zakladce Actions. Dlatego glownym pingiem jest teraz
+# cron Vercela (api/keep-alive.js + sekcja "crons" w vercel.json), ktory nie
+# ma takiego limitu, a ten workflow zostaje jako zapas.
 
 on:
   schedule:
