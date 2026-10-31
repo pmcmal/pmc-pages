@@ -3,6 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/PMClogo.png" />
+
+    <!-- Fonty lecą stąd, a nie przez @import w CSS: @import blokuje renderowanie
+         i czeka na pobranie arkusza, zanim w ogóle zacznie ściągać kroje.
+         Space Grotesk na nagłówki, Inter na tekst, Courier Prime i VT323
+         na retro podstrony. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=VT323&display=swap"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PMCmalec</title>
     <meta name="description" content="Kolekcja i portfolio projektów Pawła Malca" />

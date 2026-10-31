@@ -22,6 +22,8 @@ export default {
     },
     extend: {
       fontFamily: {
+        sans: ['Inter', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
         courier: ['"Courier Prime"', 'monospace'],
         winamp: ['"VT323"', 'monospace'],
       },
