@@ -1,5 +1,5 @@
 import type { ElementType } from "react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -23,6 +23,7 @@ import { SiteControls } from "@/components/SiteControls";
 import { PMCLogo } from "@/components/PMCLogo";
 import { PageFooter } from "@/components/PageFooter";
 import { getAllPosts, getPostTranslation, type BlogPost } from "@/lib/blog";
+import { fetchWeatherTile, instantInfo, type LiveInfo } from "@/lib/tile-live";
 import { useTranslatedBlogFields } from "@/hooks/use-blog-translation";
 
 const BlogBarItem = ({ post }: { post: BlogPost }) => {
@@ -78,7 +79,15 @@ const projectsMeta: ProjectMeta[] = [
 const MAGNIFY_RADIUS = 220;
 const MAGNIFY_MAX_SCALE = 1.06;
 
-const ProjectGrid = ({ items, openLabel }: { items: ProjectCard[]; openLabel: string }) => {
+const ProjectGrid = ({
+  items,
+  openLabel,
+  live,
+}: {
+  items: ProjectCard[];
+  openLabel: string;
+  live: Record<string, LiveInfo | null>;
+}) => {
   const cardRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
@@ -118,7 +127,20 @@ const ProjectGrid = ({ items, openLabel }: { items: ProjectCard[]; openLabel: st
             </div>
             <h2 className="font-semibold mb-1">{project.title}</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 flex-grow">{project.description}</p>
-            <span className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-gray-400 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
+            {/* Zywy pasek: dane uzytkownika wyrozniamy akcentem, przyklady
+                zostaja szare, zeby nie udawaly czegos, czym nie sa. */}
+            {live[project.key] && (
+              <span
+                className={`mt-3 text-xs truncate ${
+                  live[project.key]!.kind === "data"
+                    ? "text-primary font-medium"
+                    : "text-gray-400 dark:text-gray-500 italic"
+                }`}
+              >
+                {live[project.key]!.text}
+              </span>
+            )}
+            <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-gray-400 dark:text-gray-500 group-hover:text-gray-900 dark:group-hover:text-gray-100 transition-colors">
               {openLabel} <ArrowRight className="w-3.5 h-3.5" />
             </span>
           </Link>
@@ -140,6 +162,26 @@ const Index = () => {
   }));
   const aiProjects = projects.filter((p) => p.category === "ai");
   const otherProjects = projects.filter((p) => p.category === "other");
+
+  // Zywe paski na kafelkach. Wszystko poza pogoda liczy sie od razu, bez
+  // zadnego zapytania - przyklady losuja sie raz na wejscie, a rekordy
+  // i zapisy czytamy z pamieci przegladarki.
+  const [live, setLive] = useState<Record<string, LiveInfo | null>>({});
+
+  useEffect(() => {
+    const initial: Record<string, LiveInfo | null> = {};
+    for (const project of projectsMeta) initial[project.key] = instantInfo(project.key);
+    setLive(initial);
+
+    // Pogoda dochodzi osobno, zeby nie blokowala reszty strony.
+    let cancelled = false;
+    void fetchWeatherTile().then((info) => {
+      if (!cancelled && info) setLive((prev) => ({ ...prev, weather: info }));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100">
@@ -187,14 +229,14 @@ const Index = () => {
           <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-4">
             <Sparkles className="w-4 h-4" /> {t("index.sectionAi")}
           </h2>
-          <ProjectGrid items={aiProjects} openLabel={t("index.open")} />
+          <ProjectGrid items={aiProjects} openLabel={t("index.open")} live={live} />
         </section>
 
         <section>
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-400 dark:text-gray-500 mb-4">
             {t("index.sectionOther")}
           </h2>
-          <ProjectGrid items={otherProjects} openLabel={t("index.open")} />
+          <ProjectGrid items={otherProjects} openLabel={t("index.open")} live={live} />
         </section>
 
         <div className="mt-16">
