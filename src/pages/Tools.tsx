@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ElementType } from "react";
+import { AlignLeft, ArrowLeftRight, KeyRound, QrCode as QrCodeIcon } from "lucide-react";
 import QRCode from "qrcode";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -26,11 +28,14 @@ import {
 
 type Tab = "qr" | "haslo" | "konwerter" | "tekst";
 
-const TABS: { id: Tab; label: string; icon: string }[] = [
-  { id: "qr", label: "Kod QR", icon: "▦" },
-  { id: "haslo", label: "Hasło", icon: "🔑" },
-  { id: "konwerter", label: "Konwerter", icon: "⇄" },
-  { id: "tekst", label: "Licznik tekstu", icon: "¶" },
+// Ikony zamiast emoji: emoji ma wlasny, staly kolor (klucz jest zolty), wiec
+// na bursztynowym tle aktywnego przycisku sie zlewal. Ikony lucide dziedzicza
+// kolor tekstu, wiec kontrast dziala w obu stanach i w obu motywach.
+const TABS: { id: Tab; label: string; icon: ElementType }[] = [
+  { id: "qr", label: "Kod QR", icon: QrCodeIcon },
+  { id: "haslo", label: "Hasło", icon: KeyRound },
+  { id: "konwerter", label: "Konwerter", icon: ArrowLeftRight },
+  { id: "tekst", label: "Licznik tekstu", icon: AlignLeft },
 ];
 
 const copy = (text: string, what: string) => {
@@ -265,7 +270,7 @@ const ConverterTool = () => {
           }}
           aria-label="Zamień jednostki miejscami"
         >
-          ⇄
+          <ArrowLeftRight className="w-4 h-4" />
         </Button>
 
         <div className="grid gap-2">
@@ -366,21 +371,24 @@ const Tools = () => {
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="flex flex-wrap gap-2">
-            {TABS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTab(t.id)}
-                aria-pressed={tab === t.id}
-                className={`px-3 py-1.5 rounded-full text-sm border transition-colors ${
-                  tab === t.id
-                    ? "bg-primary text-primary-foreground border-primary font-medium"
-                    : "border-input hover:bg-accent"
-                }`}
-              >
-                <span className="mr-1.5">{t.icon}</span>
-                {t.label}
-              </button>
-            ))}
+            {TABS.map((t) => {
+              const Icon = t.icon;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setTab(t.id)}
+                  aria-pressed={tab === t.id}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors ${
+                    tab === t.id
+                      ? "bg-primary text-primary-foreground border-primary font-medium"
+                      : "border-input hover:bg-accent"
+                  }`}
+                >
+                  <Icon className="w-4 h-4" />
+                  {t.label}
+                </button>
+              );
+            })}
           </div>
 
           {tab === "qr" && <QrTool />}
