@@ -16,4 +16,10 @@ export const sandboxApps: SandboxApp[] = [
     description: "Kryminal w realiach PRL: przesluchania, tablica sledztwa i krotkie przejscia korytarzem.",
     path: "/sprawa-magazynu",
   },
+  {
+    key: "narzedzia",
+    title: "Drobne narzedzia",
+    description: "Kod QR, generator hasel, konwerter jednostek i licznik tekstu - wszystko lokalnie w przegladarce.",
+    path: "/narzedzia",
+  },
 ];

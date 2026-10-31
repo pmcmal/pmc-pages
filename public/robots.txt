@@ -1,24 +1,29 @@
 User-agent: Googlebot
 Allow: /
 Disallow: /admin
+Disallow: /narzedzia
 Disallow: /sprawa-magazynu
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
+Disallow: /narzedzia
 Disallow: /sprawa-magazynu
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /admin
+Disallow: /narzedzia
 Disallow: /sprawa-magazynu
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /admin
+Disallow: /narzedzia
 Disallow: /sprawa-magazynu
 
 User-agent: *
 Allow: /
 Disallow: /admin
+Disallow: /narzedzia
 Disallow: /sprawa-magazynu
