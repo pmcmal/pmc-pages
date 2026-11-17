@@ -22,4 +22,10 @@ export const sandboxApps: SandboxApp[] = [
     description: "Kod QR, generator hasel, konwerter jednostek i licznik tekstu - wszystko lokalnie w przegladarce.",
     path: "/narzedzia",
   },
+  {
+    key: "kalendarz-cytatow",
+    title: "Kalendarz cytatow",
+    description: "Cytaty z polskiej literatury dobrane przez AI, jeden na kazdy dzien miesiaca.",
+    path: "/kalendarz-cytatow",
+  },
 ];

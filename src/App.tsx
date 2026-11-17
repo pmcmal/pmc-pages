@@ -24,6 +24,7 @@ const CVGenerator = lazy(() => import("./pages/CVGenerator"));
 const TunnelGame = lazy(() => import("./pages/TunnelGame"));
 const DetectiveGame = lazy(() => import("./pages/DetectiveGame"));
 const Tools = lazy(() => import("./pages/Tools"));
+const QuoteCalendar = lazy(() => import("./pages/QuoteCalendar"));
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
               <Route path="/tunel" element={<TunnelGame />} />
               <Route path="/sprawa-magazynu" element={<DetectiveGame />} />
               <Route path="/narzedzia" element={<Tools />} />
+              <Route path="/kalendarz-cytatow" element={<QuoteCalendar />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

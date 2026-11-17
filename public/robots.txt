@@ -3,27 +3,32 @@ Allow: /
 Disallow: /admin
 Disallow: /narzedzia
 Disallow: /sprawa-magazynu
+Disallow: /kalendarz-cytatow
 
 User-agent: Bingbot
 Allow: /
 Disallow: /admin
 Disallow: /narzedzia
 Disallow: /sprawa-magazynu
+Disallow: /kalendarz-cytatow
 
 User-agent: Twitterbot
 Allow: /
 Disallow: /admin
 Disallow: /narzedzia
 Disallow: /sprawa-magazynu
+Disallow: /kalendarz-cytatow
 
 User-agent: facebookexternalhit
 Allow: /
 Disallow: /admin
 Disallow: /narzedzia
 Disallow: /sprawa-magazynu
+Disallow: /kalendarz-cytatow
 
 User-agent: *
 Allow: /
 Disallow: /admin
 Disallow: /narzedzia
 Disallow: /sprawa-magazynu
+Disallow: /kalendarz-cytatow
