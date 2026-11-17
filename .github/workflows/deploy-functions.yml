@@ -45,18 +45,13 @@ jobs:
           # Bez --no-verify-jwt: funkcje sa wolane kluczem anon (poprawny JWT),
           # a te wymagajace logowania dodatkowo sprawdzaja role w kodzie.
           # Dolozenie tej flagi oslabiloby obecne ustawienia.
-          #
-          # --yes: nowsza wersja Supabase CLI pyta o potwierdzenie przed
-          # wdrozeniem wielu funkcji naraz, a w CI nie ma terminala, zeby na to
-          # pytanie odpowiedziec - bez tej flagi caly deploy konczy sie "Nothing
-          # was changed" i nic sie nie wdraza, nawet funkcje bez zmian.
           if [ -n "$SINGLE" ]; then
             echo "Wdrazam pojedyncza funkcje: $SINGLE"
-            supabase functions deploy "$SINGLE" --project-ref "$PROJECT_ID" --yes
+            supabase functions deploy "$SINGLE" --project-ref "$PROJECT_ID"
           else
             # Wywolanie bez nazwy wdraza wszystkie funkcje naraz. Iterowanie po
             # katalogach bylo bledem: wpadal w nie tez _shared, ktory nie jest
             # funkcja (nazwa musi zaczynac sie od litery), tylko wspolnym kodem
             # doklejanym do funkcji, ktore go importuja.
-            supabase functions deploy --project-ref "$PROJECT_ID" --yes
+            supabase functions deploy --project-ref "$PROJECT_ID"
           fi
