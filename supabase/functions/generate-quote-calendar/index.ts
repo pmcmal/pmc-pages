@@ -58,6 +58,77 @@ export function parseCalendar(raw: string, maxDays: number): CalendarEntry[] {
   return [...entries.values()].sort((a, b) => a.day - b.day);
 }
 
+// --- cache w bazie, wspolny dla wszystkich odwiedzajacych ---
+//
+// Cache w localStorage przegladarki chroni tylko jedna osobe przed ponownym
+// pytaniem AI o ten sam miesiac. Bez cache po stronie serwera kazdy PIERWSZY
+// w danym miesiacu odwiedzajacy (z innej przegladarki, innego urzadzenia)
+// i tak odpytuje AI od nowa - przy wiekszym ruchu to marnuje wspolny, darmowy
+// limit OpenRoutera na generowanie tego samego miesiaca wielokrotnie.
+//
+// SUPABASE_URL i SUPABASE_SERVICE_ROLE_KEY Supabase wstrzykuje automatycznie
+// do kazdej edge function - nie trzeba ich ustawiac recznie jak OPENROUTER_API_KEY.
+//
+// Zarowno odczyt jak i zapis sa "best effort": jesli tabeli jeszcze nie ma
+// (migracja niewykonana) albo zapytanie zawiedzie z jakiegokolwiek innego
+// powodu, funkcja ma dzialac dokladnie tak jak bez cache - nigdy nie psuc
+// glownej funkcjonalnosci z powodu problemu z cache.
+function supabaseRestHeaders(): Record<string, string> | null {
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!serviceRoleKey) return null;
+  return {
+    apikey: serviceRoleKey,
+    Authorization: `Bearer ${serviceRoleKey}`,
+    "Content-Type": "application/json",
+  };
+}
+
+async function readCachedMonth(rok: number, miesiac: number): Promise<CalendarEntry[] | null> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const headers = supabaseRestHeaders();
+  if (!supabaseUrl || !headers) return null;
+
+  try {
+    const response = await fetch(
+      `${supabaseUrl}/rest/v1/quote_calendar_cache?year=eq.${rok}&month=eq.${miesiac}&select=entries`,
+      { headers },
+    );
+    if (!response.ok) return null;
+    const rows = await response.json();
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+    const entries = rows[0]?.entries;
+    return Array.isArray(entries) && entries.length > 0 ? (entries as CalendarEntry[]) : null;
+  } catch (error) {
+    console.error("Odczyt cache kalendarza zawiodl (dzialam bez cache):", error);
+    return null;
+  }
+}
+
+async function writeCachedMonth(rok: number, miesiac: number, entries: CalendarEntry[]): Promise<void> {
+  const supabaseUrl = Deno.env.get("SUPABASE_URL");
+  const headers = supabaseRestHeaders();
+  if (!supabaseUrl || !headers) return;
+
+  try {
+    // Prefer: resolution=ignore-duplicates obsluguje wyscig: gdy dwa prawie
+    // rownoczesne zapytania o ten sam miesiac oba trafia w brak cache i oba
+    // wygeneruja wlasna odpowiedz AI, tylko pierwszy zapis ma sie udac - drugi
+    // ma po cichu nic nie zrobic zamiast konczyc sie bledem 409. Zwracana
+    // przez TA funkcje odpowiedz i tak idzie do jej wlasnego wywolujacego
+    // niezaleznie od wyniku zapisu do cache.
+    const response = await fetch(`${supabaseUrl}/rest/v1/quote_calendar_cache`, {
+      method: "POST",
+      headers: { ...headers, Prefer: "return=minimal,resolution=ignore-duplicates" },
+      body: JSON.stringify({ year: rok, month: miesiac, entries }),
+    });
+    if (!response.ok) {
+      console.error("Zapis do cache kalendarza zawiodl:", response.status, await response.text().catch(() => ""));
+    }
+  } catch (error) {
+    console.error("Zapis do cache kalendarza zawiodl (nie przerywam odpowiedzi):", error);
+  }
+}
+
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
@@ -76,12 +147,23 @@ serve(async (req) => {
       });
     }
 
+    const dni = dniWMiesiacu(rok, miesiac);
+
+    // Ktos inny (inna przegladarka, inne urzadzenie) mogl juz wygenerowac ten
+    // sam rok+miesiac - wtedy w ogole nie dotykamy AI.
+    const cached = await readCachedMonth(rok, miesiac);
+    if (cached) {
+      return new Response(JSON.stringify({ year: rok, month: miesiac, days: dni, entries: cached }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
     const openrouterApiKey = Deno.env.get("OPENROUTER_API_KEY");
     if (!openrouterApiKey) {
       throw new Error("OPENROUTER_API_KEY is not set in environment variables.");
     }
 
-    const dni = dniWMiesiacu(rok, miesiac);
     const nazwa = MIESIACE[miesiac - 1];
 
     const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
@@ -135,6 +217,10 @@ serve(async (req) => {
       console.error("Nie udalo sie odczytac zadnego wiersza:", content.slice(0, 500));
       throw new Error("Nie udało się odczytać kalendarza z odpowiedzi modelu.");
     }
+
+    // Best effort - wynik i tak wracamy do wywolujacego nawet jesli zapis
+    // do cache sie nie uda (patrz komentarz przy writeCachedMonth).
+    await writeCachedMonth(rok, miesiac, entries);
 
     return new Response(JSON.stringify({ year: rok, month: miesiac, days: dni, entries }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
