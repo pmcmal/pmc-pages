@@ -58,6 +58,84 @@ export function parseCalendar(raw: string, maxDays: number): CalendarEntry[] {
   return [...entries.values()].sort((a, b) => a.day - b.day);
 }
 
+// --- dwa niezalezne dostawce AI, zeby cos zwrocil nawet gdy jeden pada ---
+//
+// openrouter/free losuje za kazdym razem inny darmowy model spod spodu.
+// Znany, udokumentowany w wielu projektach problem: czasem trafi sie model
+// "rozumujacy", ktory zuzyje caly max_tokens na ukryte tokeny rozumowania
+// i zwroci 200 z pustym content. Parametr reasoning.exclude NIE pomaga -
+// tylko chowa slad rozumowania z odpowiedzi, token-budzet i tak jest zuzyty
+// (potwierdzone w dokumentacji OpenRoutera), a router nie ujawnia dla
+// openrouter/free, czy wylosowany model w ogole obsluguje ten parametr.
+//
+// Gemini (generativelanguage.googleapis.com) to zupelnie inna infrastruktura
+// niz OpenRouter - gdy OpenRouter akurat szwankuje, Gemini zwykle nie ma
+// tego samego problemu w tym samym momencie (i odwrotnie - model Gemini
+// "lite" tez bywa chwilowo przeciazony, 503 "high demand"). Jest wolany
+// TYLKO jako siatka bezpieczenstwa, gdy OpenRouterowi nie uda sie pokryc
+// wszystkich dni - reszta serwisu zostaje przy samym OpenRouterze.
+// GEMINI_API_KEY jest opcjonalny: bez niego funkcja dziala dokladnie tak
+// jak wczesniej, samym OpenRouterem.
+const AI_TIMEOUT_MS = 30_000;
+
+async function callOpenRouter(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+    body: JSON.stringify({
+      model: "openrouter/free",
+      provider: { sort: "throughput" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      max_tokens: 8192,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(`OpenRouter API returned an error: ${response.status} ${JSON.stringify(errorData).slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  if (!content) throw new Error("Pusta odpowiedz OpenRouter.");
+  return content;
+}
+
+async function callGemini(apiKey: string, systemPrompt: string, userPrompt: string): Promise<string> {
+  const response = await fetch(
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey,
+      },
+      signal: AbortSignal.timeout(AI_TIMEOUT_MS),
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }],
+        generationConfig: { maxOutputTokens: 8192 },
+      }),
+    },
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => "");
+    throw new Error(`Gemini API returned an error: ${response.status} ${errorText.slice(0, 200)}`);
+  }
+
+  const data = await response.json();
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!content) throw new Error("Pusta odpowiedz Gemini.");
+  return content;
+}
+
 // --- cache w bazie, wspolny dla wszystkich odwiedzajacych ---
 //
 // Cache w localStorage przegladarki chroni tylko jedna osobe przed ponownym
@@ -180,92 +258,57 @@ serve(async (req) => {
 
     const nazwa = MIESIACE[miesiac - 1];
 
-    // openrouter/free losuje za kazdym razem inny darmowy model spod spodu.
-    // Znany, udokumentowany w wielu projektach problem: czasem trafi sie
-    // model "rozumujacy", ktory zuzyje caly max_tokens na ukryte tokeny
-    // rozumowania i zwroci 200 z pustym content. Parametr reasoning.exclude
-    // NIE pomaga - tylko chowa slad rozumowania z odpowiedzi, token-budzet
-    // i tak jest zuzyty (potwierdzone w dokumentacji OpenRoutera), a router
-    // nie ujawnia dla openrouter/free, czy wylosowany model w ogole obsluguje
-    // ten parametr, wiec lepiej go nie wysylac. Zamiast tego: wiekszy
-    // max_tokens (miejsce na rozumowanie i na odpowiedz) + ograniczona liczba
-    // prob z osobnym limitem czasu kazda - to najczesciej spotykane podejscie
-    // w projektach uzywajacych openrouter/free.
-    //
-    // Kazda proba moze pokryc inny podzbior dni (np. model urwie liste w
-    // polowie, bo zabraklo mu tokenow) - wyniki kolejnych prob sa laczone po
-    // numerze dnia, a nie zastepowane, zeby nie wyrzucac juz zdobytych,
-    // poprawnych wierszy tylko dlatego, ze kolejna proba byla gorsza.
+    const systemPrompt =
+      "Jesteś znawcą literatury polskiej. Dobierasz cytaty do kalendarza. " +
+      "Podawaj WYŁĄCZNIE cytaty powszechnie znane i faktycznie istniejące - lepiej powtórzyć " +
+      "sławne zdanie niż wymyślić nowe. Nie zmyślaj tytułów ani autorów. " +
+      "Odpowiadaj czystym tekstem: jeden wiersz na dzień, pola rozdzielone znakiem |, " +
+      "w kolejności: numer dnia | cytat | autor | tytuł utworu. " +
+      "Bez nagłówków, bez numeracji listy, bez komentarzy, bez cudzysłowów wokół pól.";
+    const userPrompt =
+      `Ułóż kalendarz cytatów na ${nazwa} ${rok}. Potrzebuję ${dni} wierszy, po jednym na każdy ` +
+      `dzień od 1 do ${dni}. Cytaty z polskiej literatury - proza i poezja, różni autorzy i epoki, ` +
+      `każdy autor najwyżej dwa razy. Każdy cytat ma być krótki (do 200 znaków) i zrozumiały bez ` +
+      `kontekstu. Jeśli jakiś fragment pasuje do pory roku albo nastroju tego miesiąca, tym lepiej.`;
+
+    // Kazda proba (niezaleznie od dostawcy) moze pokryc inny podzbior dni -
+    // wyniki sa laczone po numerze dnia, a nie zastepowane, zeby nie wyrzucac
+    // juz zdobytych, poprawnych wierszy tylko dlatego, ze kolejna proba byla
+    // gorsza. Limity prob i timeout na probe sa tak dobrane, zeby nawet w
+    // najgorszym razie (wszystkie proby obu dostawcow wolne) zmiescic sie
+    // w budzecie czasowym Supabase dla darmowego planu (~150s).
     const byDay = new Map<number, CalendarEntry>();
     let lastError: unknown = null;
 
-    for (let attempt = 1; attempt <= 3 && byDay.size < dni; attempt++) {
+    const tryProvider = async (label: string, call: () => Promise<string>) => {
       try {
-        const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${openrouterApiKey}`,
-            "Content-Type": "application/json",
-          },
-          signal: AbortSignal.timeout(35_000),
-          body: JSON.stringify({
-            model: "openrouter/free",
-            provider: { sort: "throughput" },
-            messages: [
-              {
-                role: "system",
-                content:
-                  "Jesteś znawcą literatury polskiej. Dobierasz cytaty do kalendarza. " +
-                  "Podawaj WYŁĄCZNIE cytaty powszechnie znane i faktycznie istniejące - lepiej powtórzyć " +
-                  "sławne zdanie niż wymyślić nowe. Nie zmyślaj tytułów ani autorów. " +
-                  "Odpowiadaj czystym tekstem: jeden wiersz na dzień, pola rozdzielone znakiem |, " +
-                  "w kolejności: numer dnia | cytat | autor | tytuł utworu. " +
-                  "Bez nagłówków, bez numeracji listy, bez komentarzy, bez cudzysłowów wokół pól.",
-              },
-              {
-                role: "user",
-                content:
-                  `Ułóż kalendarz cytatów na ${nazwa} ${rok}. Potrzebuję ${dni} wierszy, po jednym na każdy ` +
-                  `dzień od 1 do ${dni}. Cytaty z polskiej literatury - proza i poezja, różni autorzy i epoki, ` +
-                  `każdy autor najwyżej dwa razy. Każdy cytat ma być krótki (do 200 znaków) i zrozumiały bez ` +
-                  `kontekstu. Jeśli jakiś fragment pasuje do pory roku albo nastroju tego miesiąca, tym lepiej.`,
-              },
-            ],
-            max_tokens: 8192,
-          }),
-        });
-
-        if (!openrouterResponse.ok) {
-          const errorData = await openrouterResponse.json().catch(() => ({}));
-          console.error(`Proba ${attempt}/3 - blad OpenRouter:`, openrouterResponse.status, errorData);
-          lastError = new Error(`OpenRouter API returned an error: ${openrouterResponse.status}`);
-          continue;
-        }
-
-        const data = await openrouterResponse.json();
-        const content = data.choices?.[0]?.message?.content;
-        if (!content) {
-          console.error(`Proba ${attempt}/3 - pusta odpowiedz OpenRouter:`, JSON.stringify(data).slice(0, 500));
-          lastError = new Error("Pusta odpowiedz modelu.");
-          continue;
-        }
-
+        const content = await call();
         const parsed = parseCalendar(content, dni);
         if (parsed.length === 0) {
-          console.error(`Proba ${attempt}/3 - nie udalo sie odczytac zadnego wiersza:`, content.slice(0, 500));
+          console.error(`${label} - nie udalo sie odczytac zadnego wiersza:`, content.slice(0, 500));
           lastError = new Error("Nie udało się odczytać kalendarza z odpowiedzi modelu.");
-          continue;
+          return;
         }
-
         for (const entry of parsed) {
           if (!byDay.has(entry.day)) byDay.set(entry.day, entry);
         }
         if (byDay.size < dni) {
-          console.error(`Proba ${attempt}/3 - pokryto ${byDay.size}/${dni} dni, probuje dalej.`);
+          console.error(`${label} - pokryto ${byDay.size}/${dni} dni, probuje dalej.`);
         }
       } catch (error) {
-        console.error(`Proba ${attempt}/3 - wyjatek:`, error);
+        console.error(`${label} - wyjatek:`, error);
         lastError = error;
+      }
+    };
+
+    for (let attempt = 1; attempt <= 2 && byDay.size < dni; attempt++) {
+      await tryProvider(`OpenRouter proba ${attempt}/2`, () => callOpenRouter(openrouterApiKey, systemPrompt, userPrompt));
+    }
+
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    if (geminiApiKey) {
+      for (let attempt = 1; attempt <= 2 && byDay.size < dni; attempt++) {
+        await tryProvider(`Gemini proba ${attempt}/2`, () => callGemini(geminiApiKey, systemPrompt, userPrompt));
       }
     }
 
