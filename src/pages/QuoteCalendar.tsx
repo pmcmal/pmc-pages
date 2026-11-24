@@ -31,10 +31,10 @@ const QuoteCalendar = () => {
 
   const isCurrentMonth = year === today.getFullYear() && month === today.getMonth() + 1;
 
-  const load = useCallback(async (y: number, m: number) => {
+  const load = useCallback(async (y: number, m: number, force = false) => {
     setIsLoading(true);
     setAiFailed(false);
-    const { entries, aiFailed: failed } = await loadMonth(y, m);
+    const { entries, aiFailed: failed } = await loadMonth(y, m, force);
     setDays(fillMonth(y, m, entries));
     setAiFailed(failed);
     setIsLoading(false);
@@ -68,10 +68,11 @@ const QuoteCalendar = () => {
   const regenerate = async () => {
     // Czyscimy cache tego miesiaca i pytamy AI jeszcze raz - przydaje sie,
     // gdy pierwsza proba trafila na przeciazony darmowy model i duzo dni
-    // wyszlo z zestawu zapasowego.
+    // wyszlo z zestawu zapasowego. force=true, bo samo wyczyszczenie lokalnego
+    // cache by nie wystarczylo - edge function ma tez wspolny cache w bazie.
     setIsLoading(true);
     clearCachedMonth(year, month);
-    await load(year, month);
+    await load(year, month, true);
   };
 
   const todaysEntry =

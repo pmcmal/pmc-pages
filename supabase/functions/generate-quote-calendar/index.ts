@@ -83,21 +83,28 @@ function supabaseRestHeaders(): Record<string, string> | null {
   };
 }
 
-async function readCachedMonth(rok: number, miesiac: number): Promise<CalendarEntry[] | null> {
+interface CachedRow {
+  entries: CalendarEntry[];
+  generatedAt: string;
+}
+
+async function readCachedMonth(rok: number, miesiac: number): Promise<CachedRow | null> {
   const supabaseUrl = Deno.env.get("SUPABASE_URL");
   const headers = supabaseRestHeaders();
   if (!supabaseUrl || !headers) return null;
 
   try {
     const response = await fetch(
-      `${supabaseUrl}/rest/v1/quote_calendar_cache?year=eq.${rok}&month=eq.${miesiac}&select=entries`,
+      `${supabaseUrl}/rest/v1/quote_calendar_cache?year=eq.${rok}&month=eq.${miesiac}&select=entries,generated_at`,
       { headers },
     );
     if (!response.ok) return null;
     const rows = await response.json();
     if (!Array.isArray(rows) || rows.length === 0) return null;
     const entries = rows[0]?.entries;
-    return Array.isArray(entries) && entries.length > 0 ? (entries as CalendarEntry[]) : null;
+    const generatedAt = rows[0]?.generated_at;
+    if (!Array.isArray(entries) || entries.length === 0 || typeof generatedAt !== "string") return null;
+    return { entries: entries as CalendarEntry[], generatedAt };
   } catch (error) {
     console.error("Odczyt cache kalendarza zawiodl (dzialam bez cache):", error);
     return null;
@@ -110,16 +117,17 @@ async function writeCachedMonth(rok: number, miesiac: number, entries: CalendarE
   if (!supabaseUrl || !headers) return;
 
   try {
-    // Prefer: resolution=ignore-duplicates obsluguje wyscig: gdy dwa prawie
-    // rownoczesne zapytania o ten sam miesiac oba trafia w brak cache i oba
-    // wygeneruja wlasna odpowiedz AI, tylko pierwszy zapis ma sie udac - drugi
-    // ma po cichu nic nie zrobic zamiast konczyc sie bledem 409. Zwracana
-    // przez TA funkcje odpowiedz i tak idzie do jej wlasnego wywolujacego
-    // niezaleznie od wyniku zapisu do cache.
+    // Prefer: resolution=merge-duplicates (upsert po kluczu glownym year+month)
+    // zamiast ignore-duplicates: przycisk "Losuj ponownie" ma realnie
+    // nadpisac juz zapisany wiersz (np. gdy poprzednia generacja nie pokryla
+    // wszystkich dni), a nie po cichu nic nie robic bo wiersz juz istnieje.
+    // Przy zwyklym wyscigu dwoch rownoczesnych zapytan o ten sam miesiac to
+    // i tak dziala poprawnie - po prostu wygrywa ten zapis, ktory dotrze
+    // jako drugi, bez bledu 409.
     const response = await fetch(`${supabaseUrl}/rest/v1/quote_calendar_cache`, {
       method: "POST",
-      headers: { ...headers, Prefer: "return=minimal,resolution=ignore-duplicates" },
-      body: JSON.stringify({ year: rok, month: miesiac, entries }),
+      headers: { ...headers, Prefer: "return=minimal,resolution=merge-duplicates" },
+      body: JSON.stringify({ year: rok, month: miesiac, entries, generated_at: new Date().toISOString() }),
     });
     if (!response.ok) {
       console.error("Zapis do cache kalendarza zawiodl:", response.status, await response.text().catch(() => ""));
@@ -136,7 +144,7 @@ serve(async (req) => {
   }
 
   try {
-    const { year, month } = await req.json();
+    const { year, month, force } = await req.json();
 
     const rok = Number(year);
     const miesiac = Number(month);
@@ -150,10 +158,16 @@ serve(async (req) => {
     const dni = dniWMiesiacu(rok, miesiac);
 
     // Ktos inny (inna przegladarka, inne urzadzenie) mogl juz wygenerowac ten
-    // sam rok+miesiac - wtedy w ogole nie dotykamy AI.
-    const cached = await readCachedMonth(rok, miesiac);
-    if (cached) {
-      return new Response(JSON.stringify({ year: rok, month: miesiac, days: dni, entries: cached }), {
+    // sam rok+miesiac - wtedy w ogole nie dotykamy AI. "force" (przycisk
+    // "Losuj ponownie") pomija ten odczyt i wymusza nowe pytanie do AI - ale
+    // tylko jesli poprzednia generacja nie byla sekundy temu, zeby ktos nie
+    // mogl w petli (recznie albo skryptem) bez przerwy zerowac wspolny,
+    // darmowy limit OpenRoutera samym "force".
+    const cachedRow = await readCachedMonth(rok, miesiac);
+    const cacheAgeMs = cachedRow ? Date.now() - new Date(cachedRow.generatedAt).getTime() : Infinity;
+    const respectForce = force === true && cacheAgeMs >= 30_000;
+    if (cachedRow && !respectForce) {
+      return new Response(JSON.stringify({ year: rok, month: miesiac, days: dni, entries: cachedRow.entries }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,
       });
@@ -177,10 +191,15 @@ serve(async (req) => {
     // max_tokens (miejsce na rozumowanie i na odpowiedz) + ograniczona liczba
     // prob z osobnym limitem czasu kazda - to najczesciej spotykane podejscie
     // w projektach uzywajacych openrouter/free.
-    let entries: CalendarEntry[] = [];
+    //
+    // Kazda proba moze pokryc inny podzbior dni (np. model urwie liste w
+    // polowie, bo zabraklo mu tokenow) - wyniki kolejnych prob sa laczone po
+    // numerze dnia, a nie zastepowane, zeby nie wyrzucac juz zdobytych,
+    // poprawnych wierszy tylko dlatego, ze kolejna proba byla gorsza.
+    const byDay = new Map<number, CalendarEntry>();
     let lastError: unknown = null;
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= 3 && byDay.size < dni; attempt++) {
       try {
         const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
@@ -238,14 +257,19 @@ serve(async (req) => {
           continue;
         }
 
-        entries = parsed;
-        break;
+        for (const entry of parsed) {
+          if (!byDay.has(entry.day)) byDay.set(entry.day, entry);
+        }
+        if (byDay.size < dni) {
+          console.error(`Proba ${attempt}/3 - pokryto ${byDay.size}/${dni} dni, probuje dalej.`);
+        }
       } catch (error) {
         console.error(`Proba ${attempt}/3 - wyjatek:`, error);
         lastError = error;
       }
     }
 
+    const entries = [...byDay.values()].sort((a, b) => a.day - b.day);
     if (entries.length === 0) {
       console.error("Wszystkie proby wyczerpane, ostatni blad:", lastError);
       throw new Error("Model AI nie zwrócił treści — darmowy router był chwilowo przeciążony. Spróbuj ponownie za chwilę.");

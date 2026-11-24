@@ -123,7 +123,7 @@ const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
 export class CalendarFetchError extends Error {}
 
 /** Woła edge function bez streamingu - kalendarz to jedna odpowiedz JSON, nie tekst na biezaco. */
-export async function fetchMonthFromAI(year: number, month: number): Promise<CalendarEntry[]> {
+export async function fetchMonthFromAI(year: number, month: number, force = false): Promise<CalendarEntry[]> {
   const response = await fetch(`${SUPABASE_URL}/functions/v1/generate-quote-calendar`, {
     method: "POST",
     headers: {
@@ -131,7 +131,7 @@ export async function fetchMonthFromAI(year: number, month: number): Promise<Cal
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ year, month }),
+    body: JSON.stringify({ year, month, force }),
   });
 
   if (!response.ok) {
@@ -156,16 +156,24 @@ export async function fetchMonthFromAI(year: number, month: number): Promise<Cal
  * Pobiera miesiac z pamieci przegladarki, a jesli go tam nie ma - z AI
  * (i zapisuje na przyszlosc). Zwraca tez informacje, czy AI zawiodlo, zeby
  * strona mogla pokazac, ze dziala na samym zestawie zapasowym.
+ *
+ * force=true (przycisk "Losuj ponownie") pomija lokalny cache i prosi
+ * edge function o wymuszona regeneracje - samo wyczyszczenie lokalnego
+ * cache by nie wystarczylo, bo funkcja ma tez wspolny cache w bazie danych
+ * i bez flagi "force" oddalaby z powrotem to samo, co juz tam lezy.
  */
 export async function loadMonth(
   year: number,
   month: number,
+  force = false,
 ): Promise<{ entries: CalendarEntry[]; fromCache: boolean; aiFailed: boolean }> {
-  const cached = getCachedMonth(year, month);
-  if (cached) return { entries: cached, fromCache: true, aiFailed: false };
+  if (!force) {
+    const cached = getCachedMonth(year, month);
+    if (cached) return { entries: cached, fromCache: true, aiFailed: false };
+  }
 
   try {
-    const entries = await fetchMonthFromAI(year, month);
+    const entries = await fetchMonthFromAI(year, month, force);
     setCachedMonth(year, month, entries);
     return { entries, fromCache: false, aiFailed: false };
   } catch {
