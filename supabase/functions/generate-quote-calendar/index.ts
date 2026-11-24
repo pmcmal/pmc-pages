@@ -166,56 +166,89 @@ serve(async (req) => {
 
     const nazwa = MIESIACE[miesiac - 1];
 
-    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openrouterApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openrouter/free",
-        provider: { sort: "throughput" },
-        messages: [
-          {
-            role: "system",
-            content:
-              "Jesteś znawcą literatury polskiej. Dobierasz cytaty do kalendarza. " +
-              "Podawaj WYŁĄCZNIE cytaty powszechnie znane i faktycznie istniejące - lepiej powtórzyć " +
-              "sławne zdanie niż wymyślić nowe. Nie zmyślaj tytułów ani autorów. " +
-              "Odpowiadaj czystym tekstem: jeden wiersz na dzień, pola rozdzielone znakiem |, " +
-              "w kolejności: numer dnia | cytat | autor | tytuł utworu. " +
-              "Bez nagłówków, bez numeracji listy, bez komentarzy, bez cudzysłowów wokół pól.",
-          },
-          {
-            role: "user",
-            content:
-              `Ułóż kalendarz cytatów na ${nazwa} ${rok}. Potrzebuję ${dni} wierszy, po jednym na każdy ` +
-              `dzień od 1 do ${dni}. Cytaty z polskiej literatury - proza i poezja, różni autorzy i epoki, ` +
-              `każdy autor najwyżej dwa razy. Każdy cytat ma być krótki (do 200 znaków) i zrozumiały bez ` +
-              `kontekstu. Jeśli jakiś fragment pasuje do pory roku albo nastroju tego miesiąca, tym lepiej.`,
-          },
-        ],
-        max_tokens: 4096,
-      }),
-    });
+    // openrouter/free losuje za kazdym razem inny darmowy model spod spodu.
+    // Znany, udokumentowany w wielu projektach problem: czasem trafi sie
+    // model "rozumujacy", ktory zuzyje caly max_tokens na ukryte tokeny
+    // rozumowania i zwroci 200 z pustym content. Parametr reasoning.exclude
+    // NIE pomaga - tylko chowa slad rozumowania z odpowiedzi, token-budzet
+    // i tak jest zuzyty (potwierdzone w dokumentacji OpenRoutera), a router
+    // nie ujawnia dla openrouter/free, czy wylosowany model w ogole obsluguje
+    // ten parametr, wiec lepiej go nie wysylac. Zamiast tego: wiekszy
+    // max_tokens (miejsce na rozumowanie i na odpowiedz) + ograniczona liczba
+    // prob z osobnym limitem czasu kazda - to najczesciej spotykane podejscie
+    // w projektach uzywajacych openrouter/free.
+    let entries: CalendarEntry[] = [];
+    let lastError: unknown = null;
 
-    if (!openrouterResponse.ok) {
-      const errorData = await openrouterResponse.json().catch(() => ({}));
-      console.error("OpenRouter API error:", errorData);
-      throw new Error(`OpenRouter API returned an error: ${openrouterResponse.status}`);
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openrouterApiKey}`,
+            "Content-Type": "application/json",
+          },
+          signal: AbortSignal.timeout(35_000),
+          body: JSON.stringify({
+            model: "openrouter/free",
+            provider: { sort: "throughput" },
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Jesteś znawcą literatury polskiej. Dobierasz cytaty do kalendarza. " +
+                  "Podawaj WYŁĄCZNIE cytaty powszechnie znane i faktycznie istniejące - lepiej powtórzyć " +
+                  "sławne zdanie niż wymyślić nowe. Nie zmyślaj tytułów ani autorów. " +
+                  "Odpowiadaj czystym tekstem: jeden wiersz na dzień, pola rozdzielone znakiem |, " +
+                  "w kolejności: numer dnia | cytat | autor | tytuł utworu. " +
+                  "Bez nagłówków, bez numeracji listy, bez komentarzy, bez cudzysłowów wokół pól.",
+              },
+              {
+                role: "user",
+                content:
+                  `Ułóż kalendarz cytatów na ${nazwa} ${rok}. Potrzebuję ${dni} wierszy, po jednym na każdy ` +
+                  `dzień od 1 do ${dni}. Cytaty z polskiej literatury - proza i poezja, różni autorzy i epoki, ` +
+                  `każdy autor najwyżej dwa razy. Każdy cytat ma być krótki (do 200 znaków) i zrozumiały bez ` +
+                  `kontekstu. Jeśli jakiś fragment pasuje do pory roku albo nastroju tego miesiąca, tym lepiej.`,
+              },
+            ],
+            max_tokens: 8192,
+          }),
+        });
+
+        if (!openrouterResponse.ok) {
+          const errorData = await openrouterResponse.json().catch(() => ({}));
+          console.error(`Proba ${attempt}/3 - blad OpenRouter:`, openrouterResponse.status, errorData);
+          lastError = new Error(`OpenRouter API returned an error: ${openrouterResponse.status}`);
+          continue;
+        }
+
+        const data = await openrouterResponse.json();
+        const content = data.choices?.[0]?.message?.content;
+        if (!content) {
+          console.error(`Proba ${attempt}/3 - pusta odpowiedz OpenRouter:`, JSON.stringify(data).slice(0, 500));
+          lastError = new Error("Pusta odpowiedz modelu.");
+          continue;
+        }
+
+        const parsed = parseCalendar(content, dni);
+        if (parsed.length === 0) {
+          console.error(`Proba ${attempt}/3 - nie udalo sie odczytac zadnego wiersza:`, content.slice(0, 500));
+          lastError = new Error("Nie udało się odczytać kalendarza z odpowiedzi modelu.");
+          continue;
+        }
+
+        entries = parsed;
+        break;
+      } catch (error) {
+        console.error(`Proba ${attempt}/3 - wyjatek:`, error);
+        lastError = error;
+      }
     }
 
-    const data = await openrouterResponse.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) {
-      console.error("Pusta odpowiedz OpenRouter:", JSON.stringify(data));
-      throw new Error("Model AI nie zwrócił treści — darmowy router był chwilowo przeciążony. Spróbuj ponownie za chwilę.");
-    }
-
-    const entries = parseCalendar(content, dni);
     if (entries.length === 0) {
-      console.error("Nie udalo sie odczytac zadnego wiersza:", content.slice(0, 500));
-      throw new Error("Nie udało się odczytać kalendarza z odpowiedzi modelu.");
+      console.error("Wszystkie proby wyczerpane, ostatni blad:", lastError);
+      throw new Error("Model AI nie zwrócił treści — darmowy router był chwilowo przeciążony. Spróbuj ponownie za chwilę.");
     }
 
     // Best effort - wynik i tak wracamy do wywolujacego nawet jesli zapis
