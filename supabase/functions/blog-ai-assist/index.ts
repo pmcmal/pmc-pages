@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { fetchAiText } from "../_shared/ai-providers.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const MAX_INSTRUCTION_LENGTH = 2000;
@@ -60,38 +61,13 @@ serve(async (req) => {
     if (!openrouterApiKey) {
       throw new Error("OPENROUTER_API_KEY is not set in environment variables.");
     }
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
-    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openrouterApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openrouter/free",
-        provider: { sort: "throughput" },
-        messages: [
-          {
-            role: "system",
-            content: "Jesteś asystentem redakcyjnym pomagającym pisać wpisy na osobisty blog techniczny (portfolio dewelopera). Otrzymujesz aktualny tytuł i treść wpisu (mogą być niepełne lub puste) oraz instrukcję od autora (np. 'zaproponuj tytuł', 'popraw styl i literówki', 'rozwiń ten fragment', 'zaproponuj wstęp'). Wykonaj instrukcję. Zwróć WYŁĄCZNIE wynikowy tekst w Markdown, bez komentarzy, wyjaśnień czy dodatkowych wstępów typu 'Oto poprawiona wersja:'.",
-          },
-          {
-            role: "user",
-            content: `Tytuł wpisu: ${title || "(brak)"}\n\nAktualna treść:\n${content || "(brak - wpis jeszcze nie napisany)"}\n\nInstrukcja: ${instruction}`,
-          },
-        ],
-        max_tokens: 2048,
-      }),
-    });
+    const systemPrompt =
+      "Jesteś asystentem redakcyjnym pomagającym pisać wpisy na osobisty blog techniczny (portfolio dewelopera). Otrzymujesz aktualny tytuł i treść wpisu (mogą być niepełne lub puste) oraz instrukcję od autora (np. 'zaproponuj tytuł', 'popraw styl i literówki', 'rozwiń ten fragment', 'zaproponuj wstęp'). Wykonaj instrukcję. Zwróć WYŁĄCZNIE wynikowy tekst w Markdown, bez komentarzy, wyjaśnień czy dodatkowych wstępów typu 'Oto poprawiona wersja:'.";
+    const userPrompt = `Tytuł wpisu: ${title || "(brak)"}\n\nAktualna treść:\n${content || "(brak - wpis jeszcze nie napisany)"}\n\nInstrukcja: ${instruction}`;
 
-    if (!openrouterResponse.ok) {
-      const errorData = await openrouterResponse.json();
-      console.error("OpenRouter API error:", errorData);
-      throw new Error(`OpenRouter API returned an error: ${openrouterResponse.status} - ${JSON.stringify(errorData)}`);
-    }
-
-    const data = await openrouterResponse.json();
-    const result = data.choices?.[0]?.message?.content ?? "";
+    const result = await fetchAiText(systemPrompt, userPrompt, { openrouterApiKey, geminiApiKey }, 2048);
 
     return new Response(JSON.stringify({ result }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

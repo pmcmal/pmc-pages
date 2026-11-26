@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { jsonrepair } from "npm:jsonrepair@3";
+import { fetchAiText } from "../_shared/ai-providers.ts";
 
 const ALLOWED_ORIGINS = ["https://pmcmalec.vercel.app", "http://localhost:8080"];
 const REPO = "pmcmal/pmc-pages";
@@ -106,40 +107,19 @@ serve(async (req) => {
     if (!openrouterApiKey) {
       throw new Error("OPENROUTER_API_KEY is not set in environment variables.");
     }
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
 
-    const openrouterResponse = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${openrouterApiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openrouter/free",
-        provider: { sort: "throughput" },
-        messages: [
-          {
-            role: "system",
-            content: "Jesteś tłumaczem technicznym. Otrzymujesz obiekt JSON z polami 'title', 'excerpt', 'content' wpisu bloga po polsku (pola moga byc puste). Przetłumacz KAŻDE niepuste pole na angielski. Zachowaj dokładnie formatowanie Markdown (nagłówki, listy, linki, obrazy, bloki kodu), adresy URL i fragmenty kodu bez zmian - tłumacz tylko naturalny tekst. Zwróć WYŁĄCZNIE obiekt JSON z dokładnie tymi samymi trzema polami (title, excerpt, content), bez żadnych komentarzy ani wyjaśnień.",
-          },
-          {
-            role: "user",
-            content: JSON.stringify({ title: original.title, excerpt: original.excerpt, content: original.content }),
-          },
-        ],
-        max_tokens: 4096,
-      }),
-    });
+    const systemPrompt =
+      "Jesteś tłumaczem technicznym. Otrzymujesz obiekt JSON z polami 'title', 'excerpt', 'content' wpisu bloga po polsku (pola moga byc puste). Przetłumacz KAŻDE niepuste pole na angielski. Zachowaj dokładnie formatowanie Markdown (nagłówki, listy, linki, obrazy, bloki kodu), adresy URL i fragmenty kodu bez zmian - tłumacz tylko naturalny tekst. Zwróć WYŁĄCZNIE obiekt JSON z dokładnie tymi samymi trzema polami (title, excerpt, content), bez żadnych komentarzy ani wyjaśnień.";
+    const userPrompt = JSON.stringify({ title: original.title, excerpt: original.excerpt, content: original.content });
 
-    if (!openrouterResponse.ok) {
-      const errorData = await openrouterResponse.json();
-      console.error("OpenRouter API error:", errorData);
-      throw new Error(`OpenRouter API returned an error: ${openrouterResponse.status} - ${JSON.stringify(errorData)}`);
-    }
+    const aiResponseContent = await fetchAiText(systemPrompt, userPrompt, { openrouterApiKey, geminiApiKey }, 4096);
 
-    const data = await openrouterResponse.json();
-    const aiResponseContent = data.choices?.[0]?.message?.content ?? "";
-
-    let translated;
+    // Jesli model mimo instrukcji nie oddal uzytecznego JSON-a, przerywamy z
+    // bledem zamiast po cichu zapisac nieprzetlumaczony oryginal jako
+    // tlumaczenie EN (tak dzialalo to wczesniej - i tak zapisywalismy
+    // oryginal do pliku .en.md, co bylo gorsze niz pokazanie bledu).
+    let translated: { title?: unknown; excerpt?: unknown; content?: unknown };
     const jsonCandidate = extractJson(aiResponseContent);
     try {
       translated = JSON.parse(jsonCandidate);
@@ -148,7 +128,7 @@ serve(async (req) => {
         translated = JSON.parse(jsonrepair(jsonCandidate));
       } catch (e) {
         console.error("Failed to parse translation as JSON:", aiResponseContent, e);
-        translated = original;
+        throw new Error("Model AI nie zwrócił poprawnego tłumaczenia. Spróbuj ponownie za chwilę.");
       }
     }
 
